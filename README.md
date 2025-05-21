@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.png" alt="AXUS Logo" width="200"/>
+</p>
+
 # AXUS Protocol
 
 **AXUS** is a decentralized protocol designed for smart collateral, microloans, and digital insurance.  
