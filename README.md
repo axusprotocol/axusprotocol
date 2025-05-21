@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo.png" alt="AXUS Logo" width="200"/>
+  <img src="file_00000000a04c61f7ac1fdab068c7e8d9.png" alt="AXUS Logo" width="200"/>
 </p>
 
 # AXUS Protocol
