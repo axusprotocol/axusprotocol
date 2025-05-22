@@ -3,17 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AXUS | Token Checker</title>
+  <title>AXUS Wallet Connect Test</title>
   <script src="https://unpkg.com/@tonconnect/ui@latest"></script>
 </head>
 <body>
   <h1>AXUS Token Checker</h1>
-
-  <!-- Сюда появится кнопка подключения -->
-  <div id="ton-connect" style="margin: 20px 0;"></div>
+  <div id="ton-connect"></div>
 
   <script>
-    window.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", () => {
       new TON_CONNECT_UI.TonConnectUI({
         manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
         buttonRootId: "ton-connect"
