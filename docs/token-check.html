@@ -88,13 +88,20 @@
 
       try {
         const res = await fetch(`https://tonapi.io/v2/tokens/${address}`);
+
+        if (!res.ok) {
+          resultDiv.innerHTML += `❌ Token not found in TON API: ${address}<br/><br/>`;
+          return;
+        }
+
         const data = await res.json();
 
         let passed = 0;
         const checks = [];
 
-        const ageOk = Date.now() - new Date(data.metadata?.created_at || Date.now()).getTime() > 90 * 24 * 60 * 60 * 1000;
-        if (ageOk) { passed++; checks.push("✅ Age ≥ 3 months"); } else { checks.push("❌ Age < 3 months"); }
+        const createdAt = data.metadata?.created_at;
+        const ageOk = createdAt && (Date.now() - new Date(createdAt).getTime() > 90 * 24 * 60 * 60 * 1000);
+        if (ageOk) { passed++; checks.push("✅ Age ≥ 3 months"); } else { checks.push("❌ Age < 3 months or unknown"); }
 
         const holders = data.analytics?.holders || 0;
         if (holders >= 50) { passed++; checks.push(`✅ ${holders} holders`); } else { checks.push(`❌ Only ${holders} holders`); }
@@ -112,7 +119,7 @@
           ${checks.join('<br/>')}<br/><strong>${status}</strong><br/><br/>
         `;
       } catch (err) {
-        resultDiv.innerHTML += `❌ Failed to fetch data for ${address}<br/><br/>`;
+        resultDiv.innerHTML += `❌ Failed to fetch token data. Possibly incorrect address or network error: ${address}<br/><br/>`;
       }
     }
   </script>
