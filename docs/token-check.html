@@ -15,7 +15,15 @@
 </head>
 <body>
 
-  <div id="ton-connect" style="margin-bottom: 20px;"></div>
+  <script>
+  window.addEventListener("DOMContentLoaded", () => {
+    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+      manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
+      buttonRootId: "ton-connect"
+    });
+  });
+</script>
+<div id="ton-connect" style="margin-top: 40px;"></div>
 
   <h1>AXUS Token Collateral Checker</h1>
   <p>Connect your TON wallet, pay 0.01 TON and check up to 3 tokens for eligibility.</p>
