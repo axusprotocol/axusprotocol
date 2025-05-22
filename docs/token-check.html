@@ -30,14 +30,14 @@
   <a class="back-button" href="index-en.html">← Back to main site</a>
 
   <script>
-    let tonConnectUI;
+  let tonConnectUI;
 
-    window.addEventListener("load", () => {
-      tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-        manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
-        buttonRootId: "ton-connect"
-      });
+  document.addEventListener("DOMContentLoaded", async () => {
+    tonConnectUI = new TonConnectUI({
+      manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
+      buttonRootId: "ton-connect"
     });
+  });
 
     async function initiatePayment() {
       const inputs = [
