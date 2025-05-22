@@ -31,14 +31,13 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
-      const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-        manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
-        buttonRootId: "ton-connect"
-      });
+  const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+    manifestUrl: "https://axusprotocol.github.io/axusprotocol/docs/tonconnect-manifest.json",
+    buttonRootId: "ton-connect"
+  });
 
-      window.tonConnectUI = tonConnectUI;
-    });
-
+  window.tonConnectUI = tonConnectUI;
+});
     async function initiatePayment() {
       const inputs = [
         document.getElementById("token1").value.trim(),
