@@ -30,14 +30,15 @@
   <a class="back-button" href="index-en.html">← Back to main site</a>
 
   <script>
-    document.addEventListener("DOMContentLoaded", async () => {
-  const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-    manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
-    buttonRootId: "ton-connect"
-  });
+    let tonConnectUI;
 
-  window.tonConnectUI = tonConnectUI;
-});
+    document.addEventListener("DOMContentLoaded", async () => {
+      tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+        manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
+        buttonRootId: "ton-connect"
+      });
+    });
+
     async function initiatePayment() {
       const inputs = [
         document.getElementById("token1").value.trim(),
@@ -52,8 +53,8 @@
         return;
       }
 
-      const connected = await window.tonConnectUI.connected;
-      if (!connected) {
+      const connectedWallet = await tonConnectUI.connected;
+      if (!connectedWallet) {
         resultDiv.innerHTML = "❌ Please connect your wallet first.";
         return;
       }
@@ -61,15 +62,13 @@
       resultDiv.innerHTML = "⏳ Awaiting payment confirmation...";
 
       try {
-        await window.tonConnectUI.sendTransaction({
+        await tonConnectUI.sendTransaction({
           validUntil: Math.floor(Date.now() / 1000) + 600,
-          messages: [
-            {
-              address: "UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA",
-              amount: "10000000",
-              payload: null
-            }
-          ]
+          messages: [{
+            address: "UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA",
+            amount: "10000000",
+            payload: null
+          }]
         });
 
         resultDiv.innerHTML = "<strong>✅ Payment received. Checking tokens...</strong><br/><br/>";
@@ -94,7 +93,6 @@
         }
 
         const data = await res.json();
-
         let passed = 0;
         const checks = [];
 
