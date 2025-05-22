@@ -1,7 +1,5 @@
 {
+  "url": "https://axusprotocol.vercel.app/",
   "name": "AXUS Protocol",
-  "url": "https://axusprotocol.github.io/axusprotocol/",
-  "iconUrl": "https://axusprotocol.github.io/axusprotocol/assets/axus-logo.png",
-  "termsOfUseUrl": "https://axusprotocol.github.io/axusprotocol/terms.html",
-  "privacyPolicyUrl": "https://axusprotocol.github.io/axusprotocol/privacy.html"
+  "iconUrl": "https://axusprotocol.vercel.app/assets/axus-logo.png"
 }
