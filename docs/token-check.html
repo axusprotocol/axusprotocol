@@ -32,12 +32,12 @@
   <script>
     let tonConnectUI;
 
-    document.addEventListener("DOMContentLoaded", () => {
-      tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-        manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
-        buttonRootId: "ton-connect"
-      });
-    });
+    document.addEventListener("DOMContentLoaded", async () => {
+  tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+    manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
+    buttonRootId: "ton-connect"
+  });
+});
 
     async function initiatePayment() {
       const inputs = [
