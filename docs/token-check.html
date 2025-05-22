@@ -15,16 +15,7 @@
 </head>
 <body>
 
-  <!-- Контейнер для кнопки TON Connect -->
-<div id="ton-connect" style="margin-bottom: 20px;"></div>
-
-<script src="https://unpkg.com/@tonconnect/ui@latest"></script>
-<script>
-  const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-    manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
-    buttonRootId: "ton-connect"
-  });
-</script>
+  <div id="ton-connect" style="margin-bottom: 20px;"></div>
 
   <h1>AXUS Token Collateral Checker</h1>
   <p>Connect your TON wallet, pay 0.01 TON and check if your token is eligible for collateral.</p>
@@ -37,9 +28,13 @@
   <a class="back-button" href="index-en.html">← Back to main site</a>
 
   <script>
-    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-      manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
-      buttonRootId: "ton-connect"
+    document.addEventListener("DOMContentLoaded", async () => {
+      const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+        manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
+        buttonRootId: "ton-connect"
+      });
+
+      window.tonConnectUI = tonConnectUI; // сохраняем глобально для доступа при отправке транзакции
     });
 
     async function initiatePayment() {
@@ -51,7 +46,7 @@
         return;
       }
 
-      const connected = await tonConnectUI.connected;
+      const connected = await window.tonConnectUI.connected;
       if (!connected) {
         resultDiv.innerHTML = "❌ Please connect your wallet first.";
         return;
@@ -60,12 +55,12 @@
       resultDiv.innerHTML = "⏳ Awaiting payment confirmation...";
 
       try {
-        await tonConnectUI.sendTransaction({
+        await window.tonConnectUI.sendTransaction({
           validUntil: Math.floor(Date.now() / 1000) + 600,
           messages: [
             {
               address: "UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA",
-              amount: "10000000",
+              amount: "10000000", // 0.01 TON
               payload: null
             }
           ]
