@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AXUS | Connect Test</title>
+  <script src="https://unpkg.com/@tonconnect/ui@latest"></script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 2rem; }
+    h1 { color: #007aff; }
+  </style>
+</head>
+<body>
+
+  <h1>AXUS Token Checker</h1>
+  <div id="ton-connect"></div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      try {
+        new TON_CONNECT_UI.TonConnectUI({
+          manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
+          buttonRootId: "ton-connect"
+        });
+      } catch (e) {
+        document.body.innerHTML += `<p style="color:red;">Ошибка инициализации TonConnect: ${e.message}</p>`;
+      }
+    });
+  </script>
+
+</body>
+</html>
