@@ -11,10 +11,11 @@
     input, button { padding: 10px; margin: 5px 0; width: 100%; max-width: 400px; }
     .result { margin-top: 20px; padding: 1rem; border: 1px solid #ccc; background: #f9f9f9; }
     .wallet-status { position: fixed; top: 15px; right: 15px; background: #007aff; color: white; padding: 10px 15px; border-radius: 6px; font-weight: bold; }
+    .back-button { margin-top: 2rem; display: inline-block; background: #e5e5e5; color: #333; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
   </style>
 </head>
 <body>
-  <div class="wallet-status" id="wallet-status">🔌 Not connected</div>
+  <div class="wallet-status" id="wallet-status">🔌 Wallet not connected</div>
 
   <h1>AXUS Token Collateral Checker</h1>
   <p>Connect your TON wallet, pay 0.01 TON and check if your token is eligible for collateral.</p>
@@ -23,6 +24,8 @@
   <button onclick="initiatePayment()">Check Token (0.01 TON)</button>
 
   <div class="result" id="result"></div>
+
+  <a class="back-button" href="index-en.html">← Back to main site</a>
 
   <script>
     const connector = new tonConnect.TonConnect();
@@ -35,7 +38,7 @@
         connectedWallet = await connector.restoreConnection();
         walletStatus.innerText = "✅ Wallet connected";
       } catch {
-        walletStatus.innerText = "🔌 Not connected";
+        walletStatus.innerText = "🔌 Wallet not connected";
       }
     }
 
@@ -63,7 +66,7 @@
           messages: [
             {
               address: "UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA",
-              amount: "10000000", // 0.01 TON in nanotons
+              amount: "10000000",
               payload: null
             }
           ]
