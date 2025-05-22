@@ -3,42 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AXUS | Token Collateral Check</title>
-  <script src="https://unpkg.com/@tonconnect/ui@0.0.2-beta.61"></script>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 850px; margin: auto; padding: 2rem; line-height: 1.6; color: #111; background: #fff; }
-    h1, h2 { color: #007aff; }
-    input, button { padding: 10px; margin: 5px 0; width: 100%; max-width: 400px; }
-    .result { margin-top: 20px; padding: 1rem; border: 1px solid #ccc; background: #f9f9f9; }
-    .back-button { margin-top: 2rem; display: inline-block; background: #e5e5e5; color: #333; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
-  </style>
-</head>
-<body>
+  <title>AXUS Token Checker</title>
+  <script type="module">
+    import { TonConnectUI } from "https://unpkg.com/@tonconnect/ui@latest";
 
-  <div id="ton-connect" style="margin-bottom: 20px;"></div>
-
-  <h1>AXUS Token Collateral Checker</h1>
-  <p>Connect your TON wallet, pay 0.01 TON and check one token for eligibility.</p>
-
-  <input type="text" id="token" placeholder="Token address">
-  <button onclick="initiatePayment()">Check Token (0.01 TON)</button>
-
-  <div class="result" id="result"></div>
-
-  <a class="back-button" href="index-en.html">← Back to main site</a>
-
-  <script>
-    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+    const tonConnectUI = new TonConnectUI({
       manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
       buttonRootId: "ton-connect"
     });
 
-    async function initiatePayment() {
-      const address = document.getElementById("token").value.trim();
+    window.tonConnectUI = tonConnectUI;
+
+    window.initiatePayment = async function () {
+      const inputs = [
+        document.getElementById("token1").value.trim(),
+        document.getElementById("token2").value.trim(),
+        document.getElementById("token3").value.trim()
+      ].filter(Boolean);
+
       const resultDiv = document.getElementById("result");
 
-      if (!address) {
-        resultDiv.innerHTML = "❌ Please enter a token address.";
+      if (inputs.length === 0) {
+        resultDiv.innerHTML = "❌ Please enter at least one token address.";
         return;
       }
 
@@ -56,51 +42,83 @@
           messages: [
             {
               address: "UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA",
-              amount: "10000000",
+              amount: "10000000", // 0.01 TON
               payload: null
             }
           ]
         });
 
-        resultDiv.innerHTML = "✅ Payment received. Checking token...";
-        checkToken(address);
+        resultDiv.innerHTML = "<strong>✅ Payment received. Checking tokens...</strong><br/><br/>";
+        for (let address of inputs) {
+          resultDiv.innerHTML += `<em>🔎 ${address}</em><br/>`;
+          await checkToken(address);
+        }
       } catch (err) {
         resultDiv.innerHTML = "❌ Payment failed or cancelled.";
       }
-    }
+    };
 
-    async function checkToken(address) {
+    window.checkToken = async function (address) {
       const resultDiv = document.getElementById("result");
+
       try {
         const res = await fetch(`https://tonapi.io/v2/tokens/${address}`);
-        const data = await res.json();
+        if (!res.ok) {
+          resultDiv.innerHTML += `❌ Token not found in TON API: ${address}<br/><br/>`;
+          return;
+        }
 
+        const data = await res.json();
         let passed = 0;
         const checks = [];
 
         const createdAt = data.metadata?.created_at;
         const ageOk = createdAt && (Date.now() - new Date(createdAt).getTime() > 90 * 24 * 60 * 60 * 1000);
-        if (ageOk) { passed++; checks.push("✅ Age ≥ 3 months"); } else { checks.push("❌ Age < 3 months or unknown"); }
+        if (ageOk) passed++, checks.push("✅ Age ≥ 3 months"); else checks.push("❌ Age < 3 months or unknown");
 
         const holders = data.analytics?.holders || 0;
-        if (holders >= 50) { passed++; checks.push(`✅ ${holders} holders`); } else { checks.push(`❌ Only ${holders} holders`); }
+        if (holders >= 50) passed++, checks.push(`✅ ${holders} holders`); else checks.push(`❌ Only ${holders} holders`);
 
         const price = data.price?.price || 0;
-        if (price > 0.000001) { passed++; checks.push(`✅ Price: ${price.toFixed(6)} TON`); } else { checks.push(`❌ Price too low: ${price.toFixed(6)} TON`); }
+        if (price > 0.000001) passed++, checks.push(`✅ Price: ${price.toFixed(6)} TON`); else checks.push(`❌ Price too low: ${price.toFixed(6)} TON`);
 
         const liquidity = data.analytics?.liquidity_usd || 0;
-        if (liquidity >= 500) { passed++; checks.push(`✅ Liquidity: $${liquidity}`); } else { checks.push(`❌ Liquidity too low: $${liquidity}`); }
+        if (liquidity >= 500) passed++, checks.push(`✅ Liquidity: $${liquidity}`); else checks.push(`❌ Liquidity too low: $${liquidity}`);
 
         const status = passed >= 3 ? "✅ Token is eligible for collateral." : "❌ Token does not meet eligibility criteria.";
 
-        resultDiv.innerHTML = `
+        resultDiv.innerHTML += `
           <strong>${data.name || 'Unknown'}:</strong><br/>
           ${checks.join('<br/>')}<br/><strong>${status}</strong><br/><br/>
         `;
-      } catch (err) {
-        resultDiv.innerHTML = `❌ Failed to fetch token data: ${address}<br/><br/>`;
+      } catch {
+        resultDiv.innerHTML += `❌ Failed to fetch token data: ${address}<br/><br/>`;
       }
-    }
+    };
   </script>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 850px; margin: auto; padding: 2rem; line-height: 1.6; color: #111; background: #fff; }
+    h1, h2 { color: #007aff; }
+    input, button { padding: 10px; margin: 5px 0; width: 100%; max-width: 400px; }
+    .result { margin-top: 20px; padding: 1rem; border: 1px solid #ccc; background: #f9f9f9; }
+    .back-button { margin-top: 2rem; display: inline-block; background: #e5e5e5; color: #333; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
+  </style>
+</head>
+<body>
+
+  <div id="ton-connect" style="margin-bottom: 20px;"></div>
+
+  <h1>AXUS Token Collateral Checker</h1>
+  <p>Connect your TON wallet, pay 0.01 TON and check up to 3 tokens for eligibility.</p>
+
+  <input type="text" id="token1" placeholder="Token address #1">
+  <input type="text" id="token2" placeholder="Token address #2">
+  <input type="text" id="token3" placeholder="Token address #3">
+  <button onclick="initiatePayment()">Check Tokens (0.01 TON)</button>
+
+  <div class="result" id="result"></div>
+
+  <a class="back-button" href="index-en.html">← Back to main site</a>
+
 </body>
 </html>
