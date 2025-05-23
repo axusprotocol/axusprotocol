@@ -3,140 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TonConnect Debug Steps</title>
-  <script src="https://unpkg.com/@tonconnect/sdk@latest"></script>
-  <style>
-    .log {
-      margin: 10px 0;
-      padding: 10px;
-      background-color: #f5f5f5;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-    }
-    .success { color: green; }
-    .error { color: red; }
-    .info { color: blue; }
-  </style>
+  <title>TonConnect ESM Import</title>
 </head>
 <body>
-  <h1>TonConnect Debug Steps</h1>
-  <div id="log-container"></div>
-  <button id="init-btn">1. Initialize TonConnect</button>
-  <button id="get-wallets-btn" disabled>2. Get Available Wallets</button>
-  <button id="connect-wallet-btn" disabled>3. Connect Wallet</button>
+  <h1>TonConnect ESM Import</h1>
+  <button id="connect-btn">Connect Wallet</button>
   
-  <script>
-    let connector = null;
-    let availableWallets = [];
+  <script type="module">
+    // Импортируем TonConnect как ESM-модуль
+    import { TonConnect } from 'https://esm.sh/@tonconnect/sdk';
     
-    function log(message, type = 'info') {
-      const logContainer = document.getElementById('log-container');
-      const logEntry = document.createElement('div');
-      logEntry.className = `log ${type}`;
-      logEntry.textContent = message;
-      logContainer.appendChild(logEntry);
-      console.log(`[${type}] ${message}`);
-    }
-    
-    document.getElementById('init-btn').addEventListener('click', async () => {
+    document.getElementById('connect-btn').addEventListener('click', async () => {
       try {
-        log('Initializing TonConnect...');
-        
-        // Проверяем, доступен ли TonConnect
-        if (typeof TonConnect === 'undefined') {
-          log('TonConnect is not defined. SDK not loaded correctly.', 'error');
-          return;
-        }
-        
-        // Создаем локальный манифест для исключения проблем с CORS
-        const manifestData = {
-          "url": "https://axusprotocol.github.io/axusprotocol/",
-          "name": "AXUS Protocol",
-          "iconUrl": "https://axusprotocol.github.io/axusprotocol/axus-logo.png"
-        };
-        
-        const manifestBlob = new Blob(
-          [JSON.stringify(manifestData)], 
-          {type: 'application/json'}
-        );
-        
-        const manifestUrl = URL.createObjectURL(manifestBlob);
-        
-        // Инициализируем TonConnect
-        connector = new TonConnect.TonConnect({
-          manifestUrl: manifestUrl
+        const connector = new TonConnect({
+          manifestUrl: 'https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json'
         });
         
-        log('TonConnect initialized successfully!', 'success');
-        document.getElementById('get-wallets-btn').disabled = false;
-      } catch (error) {
-        log(`Error initializing TonConnect: ${error.message}`, 'error');
-        console.error('Full error:', error);
-      }
-    });
-    
-    document.getElementById('get-wallets-btn').addEventListener('click', async () => {
-      try {
-        if (!connector) {
-          log('TonConnect not initialized. Please initialize first.', 'error');
-          return;
-        }
+        const wallets = await connector.getWallets();
+        console.log('Available wallets:', wallets);
         
-        log('Getting available wallets...');
-        availableWallets = await connector.getWallets();
-        
-        log(`Found ${availableWallets.length} wallets:`, 'success');
-        availableWallets.forEach((wallet, index) => {
-          log(`${index + 1}. ${wallet.name}`, 'info');
-        });
-        
-        if (availableWallets.length > 0) {
-          document.getElementById('connect-wallet-btn').disabled = false;
+        if (wallets.length > 0) {
+          connector.connect({
+            jsBridgeKey: wallets[0].jsBridgeKey,
+            universalLink: wallets[0].universalLink,
+            bridgeUrl: wallets[0].bridgeUrl
+          });
         } else {
-          log('No wallets available. Make sure you have a TON wallet installed.', 'error');
+          alert('No wallets available');
         }
       } catch (error) {
-        log(`Error getting wallets: ${error.message}`, 'error');
-        console.error('Full error:', error);
-      }
-    });
-    
-    document.getElementById('connect-wallet-btn').addEventListener('click', async () => {
-      try {
-        if (!connector) {
-          log('TonConnect not initialized. Please initialize first.', 'error');
-          return;
-        }
-        
-        if (availableWallets.length === 0) {
-          log('No wallets available. Please get wallets first.', 'error');
-          return;
-        }
-        
-        const selectedWallet = availableWallets[0]; // Выбираем первый доступный кошелек
-        log(`Connecting to ${selectedWallet.name}...`);
-        
-        // Подключаемся к кошельку
-        connector.connect({
-          jsBridgeKey: selectedWallet.jsBridgeKey,
-          universalLink: selectedWallet.universalLink,
-          bridgeUrl: selectedWallet.bridgeUrl
-        });
-        
-        // Слушаем изменения статуса подключения
-        connector.onStatusChange((wallet) => {
-          if (wallet) {
-            log(`Connected to wallet: ${wallet.device.appName}`, 'success');
-            log(`Address: ${wallet.account.address}`, 'info');
-          } else {
-            log('Wallet disconnected', 'info');
-          }
-        });
-        
-        log('Connection request sent. Please check your wallet app.', 'info');
-      } catch (error) {
-        log(`Error connecting to wallet: ${error.message}`, 'error');
-        console.error('Full error:', error);
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
       }
     });
   </script>
