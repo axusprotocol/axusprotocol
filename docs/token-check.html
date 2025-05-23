@@ -1,331 +1,340 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AXUS | Token Collateral Check</title>
-  
-  <!-- Попробуем несколько способов загрузки библиотеки -->
-  <!-- 1. Загрузка через unpkg с конкретной версией -->
-  <script src="https://unpkg.com/@tonconnect/ui@1.0.0/dist/tonconnect-ui.js"></script>
-  
-  <!-- 2. Загрузка через jsdelivr как альтернативный CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@tonconnect/ui@1.0.0/dist/tonconnect-ui.js"></script>
-  
-  <!-- 3. Загрузка базовой библиотеки SDK -->
-  <script src="https://unpkg.com/@tonconnect/sdk@2.0.0/dist/tonconnect-sdk.min.js"></script>
-  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AXUS | Проверка токенов</title>
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 850px; margin: auto; padding: 2rem; line-height: 1.6; color: #111; background: #fff; }
+    body { font-family: Arial, sans-serif; max-width: 850px; margin: 0 auto; padding: 2rem; line-height: 1.6; color: #111; background: #fff; }
     h1, h2 { color: #007aff; }
-    input, button { padding: 10px; margin: 5px 0; width: 100%; max-width: 400px; }
-    .result { margin-top: 20px; padding: 1rem; border: 1px solid #ccc; background: #f9f9f9; }
-    .back-button { margin-top: 2rem; display: inline-block; background: #e5e5e5; color: #333; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
-    #ton-connect { margin-bottom: 20px; min-height: 50px; }
-    .custom-connect-button { 
-      display: inline-block; 
-      background: #0088CC; 
-      color: white; 
-      padding: 10px 20px; 
-      border-radius: 8px; 
-      cursor: pointer; 
-      font-weight: bold;
+    input, button { padding: 12px; margin: 8px 0; width: 100%; max-width: 400px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; }
+    button { background: #007aff; color: white; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+    button:hover { background: #0062cc; }
+    button:disabled { background: #cccccc; cursor: not-allowed; }
+    .result { margin-top: 20px; padding: 1.5rem; border: 1px solid #ddd; background: #f9f9f9; border-radius: 8px; }
+    .back-button { margin-top: 2rem; display: inline-block; background: #e5e5e5; color: #333; padding: 12px 24px; text-decoration: none; border-radius: 6px; }
+    #ton-connect { 
+      margin: 20px 0;
+      min-height: 60px;
+      display: flex;
+      justify-content: center;
+    }
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #007aff;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    .error-message {
+      color: #d32f2f;
+      padding: 16px;
+      border: 1px solid #ffcdd2;
+      background: #ffebee;
+      border-radius: 8px;
+      text-align: center;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    .retry-button {
+      background: #007aff;
+      color: white;
       border: none;
-      margin-bottom: 20px;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    .wallet-connected {
+      color: #388e3c;
+      font-weight: bold;
+      text-align: center;
+      padding: 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
-  <h1>AXUS Token Collateral Checker</h1>
-  
-  <!-- Контейнер для стандартной кнопки TonConnect -->
-  <div id="ton-connect" style="margin-bottom: 20px; display: block; min-height: 50px;"></div>
-  
-  <!-- Резервная кнопка, если стандартная не загрузится -->
-  <button id="custom-connect-button" class="custom-connect-button" style="display: none;">
-    Connect TON Wallet
-  </button>
-  
-  <div id="connection-status"></div>
-  
-  <p>Connect your TON wallet, pay 0.01 TON and check up to 3 tokens for eligibility.</p>
-  <input type="text" id="token1" placeholder="Token address #1">
-  <input type="text" id="token2" placeholder="Token address #2">
-  <input type="text" id="token3" placeholder="Token address #3">
-  <button id="check-button" onclick="initiatePayment()">Check Tokens (0.01 TON)</button>
+
+  <div id="ton-connect">
+    <div class="loader"></div>
+  </div>
+
+  <h1>AXUS Проверка токенов</h1>
+  <p>Подключите TON кошелек, оплатите 0.01 TON для проверки до 3 токенов</p>
+
+  <input type="text" id="token1" placeholder="Адрес токена #1 (например: EQABC...)">
+  <input type="text" id="token2" placeholder="Адрес токена #2 (необязательно)">
+  <input type="text" id="token3" placeholder="Адрес токена #3 (необязательно)">
+  <button id="check-button" onclick="initiatePayment()">Проверить токены (0.01 TON)</button>
+
   <div class="result" id="result"></div>
-  <a class="back-button" href="index-en.html">← Back to main site</a>
+
+  <a class="back-button" href="index-en.html">← На главную</a>
 
   <script>
-    // Глобальные переменные
-    let tonConnectUI = null;
-    let tonConnectSDK = null;
+    let tonConnectUI;
     let isWalletConnected = false;
-    let connectedWalletAddress = null;
-    
-    // Функция для отображения сообщений
-    function showMessage(message, isError = false) {
-      const resultDiv = document.getElementById("result");
-      resultDiv.innerHTML = isError 
-        ? `<strong style="color:red">${message}</strong>` 
-        : message;
-      console.log(isError ? `[ERROR] ${message}` : message);
-    }
-    
-    // Функция для обновления статуса подключения
-    function updateConnectionStatus(status) {
-      document.getElementById("connection-status").innerHTML = status;
-    }
-    
-    // Функция для инициализации TonConnectUI
-    function initTonConnectUI() {
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
+
+    async function initializeTonConnect() {
+      const tonConnectElement = document.getElementById('ton-connect');
+      const checkButton = document.getElementById('check-button');
+      
       try {
-        console.log("Trying to initialize TonConnectUI...");
-        
-        // Проверяем, доступен ли TonConnectUI
+        // Проверяем загрузилась ли библиотека TonConnect
         if (typeof TonConnectUI === 'undefined') {
-          console.error("TonConnectUI is not defined");
-          throw new Error("TonConnectUI library not loaded");
+          throw new Error('Библиотека TonConnect не загрузилась');
         }
-        
-        // Создаем локальный манифест
-        const manifestData = {
-          "url": "https://axusprotocol.github.io/axusprotocol/",
-          "name": "AXUS Protocol",
-          "iconUrl": "https://axusprotocol.github.io/axusprotocol/axus-logo.png"
-        };
-        
-        const manifestBlob = new Blob(
-          [JSON.stringify(manifestData)], 
-          {type: 'application/json'}
-        );
-        
-        const manifestUrl = URL.createObjectURL(manifestBlob);
-        
-        // Инициализируем TonConnectUI
-        tonConnectUI = new TonConnectUI({
-          manifestUrl: manifestUrl,
-          buttonRootId: "ton-connect"
-        });
-        
-        console.log("TonConnectUI initialized successfully");
-        
-        // Слушаем изменения статуса подключения
-        tonConnectUI.onStatusChange((wallet) => {
-          if (wallet) {
-            isWalletConnected = true;
-            connectedWalletAddress = wallet.account.address;
-            updateConnectionStatus(`<p style="color:green">Connected: ${wallet.account.address}</p>`);
-          } else {
-            isWalletConnected = false;
-            connectedWalletAddress = null;
-            updateConnectionStatus("");
-          }
-        });
-        
-        return true;
-      } catch (error) {
-        console.error("Error initializing TonConnectUI:", error);
-        return false;
-      }
-    }
-    
-    // Функция для инициализации TonConnect SDK (резервный вариант)
-    function initTonConnectSDK() {
-      try {
-        console.log("Trying to initialize TonConnect SDK...");
-        
-        // Проверяем, доступен ли TonConnect
-        if (typeof TonConnect === 'undefined') {
-          console.error("TonConnect SDK is not defined");
-          throw new Error("TonConnect SDK library not loaded");
-        }
-        
-        // Создаем локальный манифест
-        const manifestData = {
-          "url": "https://axusprotocol.github.io/axusprotocol/",
-          "name": "AXUS Protocol",
-          "iconUrl": "https://axusprotocol.github.io/axusprotocol/axus-logo.png"
-        };
-        
-        const manifestBlob = new Blob(
-          [JSON.stringify(manifestData)], 
-          {type: 'application/json'}
-        );
-        
-        const manifestUrl = URL.createObjectURL(manifestBlob);
-        
-        // Инициализируем TonConnect SDK
-        tonConnectSDK = new TonConnect.TonConnect({
-          manifestUrl: manifestUrl
-        });
-        
-        console.log("TonConnect SDK initialized successfully");
-        
-        // Показываем кастомную кнопку
-        document.getElementById("custom-connect-button").style.display = "block";
-        
-        // Добавляем обработчик для кастомной кнопки
-        document.getElementById("custom-connect-button").addEventListener("click", async () => {
-          try {
-            const wallets = await tonConnectSDK.getWallets();
-            
-            if (wallets.length === 0) {
-              showMessage("No TON wallets found. Please install a TON wallet.", true);
-              return;
-            }
-            
-            // Выбираем первый доступный кошелек
-            const wallet = wallets[0];
-            
-            // Подключаемся к кошельку
-            tonConnectSDK.connect({
-              jsBridgeKey: wallet.jsBridgeKey,
-              universalLink: wallet.universalLink,
-              bridgeUrl: wallet.bridgeUrl
-            });
-            
-            // Слушаем изменения статуса подключения
-            tonConnectSDK.onStatusChange((wallet) => {
-              if (wallet) {
-                isWalletConnected = true;
-                connectedWalletAddress = wallet.account.address;
-                updateConnectionStatus(`<p style="color:green">Connected: ${wallet.account.address}</p>`);
-              } else {
-                isWalletConnected = false;
-                connectedWalletAddress = null;
-                updateConnectionStatus("");
+
+        // Показываем загрузку
+        tonConnectElement.innerHTML = '<div class="loader"></div>';
+        checkButton.disabled = true;
+
+        // Инициализируем TonConnect
+        tonConnectUI = new TonConnectUI.TonConnectUI({
+          manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
+          buttonRootId: "ton-connect",
+          language: 'ru',
+          uiPreferences: {
+            theme: 'SYSTEM',
+            borderRadius: 'm',
+            colorsSet: {
+              [TonConnectUI.THEME.LIGHT]: {
+                connectButton: {
+                  background: '#007aff',
+                  foreground: 'white'
+                }
+              },
+              [TonConnectUI.THEME.DARK]: {
+                connectButton: {
+                  background: '#007aff',
+                  foreground: 'white'
+                }
               }
-            });
-          } catch (error) {
-            console.error("Error connecting wallet:", error);
-            showMessage("Error connecting wallet: " + error.message, true);
+            }
           }
         });
-        
-        return true;
+
+        // Отслеживаем изменения статуса подключения
+        tonConnectUI.connectionStatusChange((status) => {
+          isWalletConnected = status === TonConnectUI.CONNECTION_STATUS.CONNECTED;
+          console.log('Статус подключения:', status);
+          
+          if (isWalletConnected) {
+            checkButton.disabled = false;
+            // tonConnectElement.innerHTML = '<div class="wallet-connected">✓ Кошелек подключен</div>';
+          } else {
+            checkButton.disabled = true;
+          }
+        });
+
+        // Проверяем существующее подключение
+        const connected = await tonConnectUI.connected;
+        if (connected) {
+          isWalletConnected = true;
+          checkButton.disabled = false;
+        }
+
       } catch (error) {
-        console.error("Error initializing TonConnect SDK:", error);
-        return false;
-      }
-    }
-    
-    // Инициализация при загрузке страницы
-    document.addEventListener("DOMContentLoaded", function() {
-      console.log("DOM loaded, initializing...");
-      
-      // Пробуем инициализировать TonConnectUI
-      const uiInitialized = initTonConnectUI();
-      
-      // Если не удалось, пробуем инициализировать TonConnect SDK
-      if (!uiInitialized) {
-        console.log("TonConnectUI initialization failed, trying TonConnect SDK...");
-        const sdkInitialized = initTonConnectSDK();
+        console.error("Ошибка инициализации TonConnect:", error);
         
-        if (!sdkInitialized) {
-          showMessage("Failed to initialize TON wallet connection. Please make sure you have a compatible browser and no extensions blocking scripts.", true);
+        retryCount++;
+        if (retryCount <= MAX_RETRIES) {
+          tonConnectElement.innerHTML = 
+            '<div class="error-message">' +
+              '<strong>Не удалось подключить кошелек</strong><br><br>' +
+              'Попытка ' + retryCount + ' из ' + MAX_RETRIES + '...' +
+              '<div class="loader" style="margin: 15px auto;"></div>' +
+            '</div>';
+          
+          // Пробуем снова через 3 секунды
+          setTimeout(initializeTonConnect, 3000);
+        } else {
+          tonConnectElement.innerHTML = 
+            '<div class="error-message">' +
+              '<strong>Не удалось подключить кошелек</strong><br><br>' +
+              'Возможные причины:<br>' +
+              '1. Проблемы с интернет-соединением<br>' +
+              '2. Блокировка рекламными фильтрами<br>' +
+              '3. Ошибка загрузки библиотеки<br><br>' +
+              '<button class="retry-button" onclick="location.reload()">⟳ Попробовать снова</button>' +
+            '</div>';
         }
       }
-    });
+    }
+
+    // Инициализируем при загрузке страницы
+    window.addEventListener("DOMContentLoaded", initializeTonConnect);
 
     async function initiatePayment() {
       const inputs = [
         document.getElementById("token1").value.trim(),
         document.getElementById("token2").value.trim(),
         document.getElementById("token3").value.trim()
-      ].filter(Boolean);
-      
+      ].filter(addr => addr && addr.length > 10); // Фильтруем пустые и слишком короткие адреса
+
       const resultDiv = document.getElementById("result");
-      
+      const checkButton = document.getElementById('check-button');
+
       if (inputs.length === 0) {
-        resultDiv.innerHTML = "❌ Please enter at least one token address.";
+        resultDiv.innerHTML = '<div style="color: #d32f2f;">❌ Введите хотя бы один корректный адрес токена</div>';
         return;
       }
-      
-      // Проверяем подключение кошелька
+
       if (!isWalletConnected) {
-        resultDiv.innerHTML = "❌ Please connect your wallet first.";
+        resultDiv.innerHTML = '<div style="color: #d32f2f;">❌ Сначала подключите кошелек</div>';
         return;
       }
-      
-      resultDiv.innerHTML = "⏳ Awaiting payment confirmation...";
-      
+
+      resultDiv.innerHTML = '<div style="color: #007aff;">⏳ Ожидание подтверждения платежа...</div>';
+      checkButton.disabled = true;
+
       try {
-        // Отправляем транзакцию через доступный интерфейс
-        if (tonConnectUI) {
-          await tonConnectUI.sendTransaction({
-            validUntil: Math.floor(Date.now() / 1000) + 600,
-            messages: [
-              {
-                address: "UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA",
-                amount: "10000000", // 0.01 TON
-                payload: null
-              }
-            ]
-          });
-        } else if (tonConnectSDK) {
-          await tonConnectSDK.sendTransaction({
-            validUntil: Math.floor(Date.now() / 1000) + 600,
-            messages: [
-              {
-                address: "UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA",
-                amount: "10000000", // 0.01 TON
-                payload: null
-              }
-            ]
-          });
-        } else {
-          throw new Error("No wallet connection interface available");
-        }
-        
-        resultDiv.innerHTML = "<strong>✅ Payment received. Checking tokens...</strong><br/><br/>";
-        
+        const transaction = {
+          validUntil: Math.floor(Date.now() / 1000) + 300, // 5 минут
+          messages: [
+            {
+              address: "UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA",
+              amount: "10000000", // 0.01 TON
+              payload: null
+            }
+          ]
+        };
+
+        await tonConnectUI.sendTransaction(transaction);
+
+        resultDiv.innerHTML = '<div style="color: #388e3c;">✅ Платеж получен. Проверяем токены...</div><br>';
         for (let address of inputs) {
-          resultDiv.innerHTML += `<em>🔎 ${address}</em><br/>`;
+          resultDiv.innerHTML += `<div><em>🔎 Проверяем токен: ${address}</em></div>`;
           await checkToken(address);
         }
       } catch (err) {
-        console.error("Payment error:", err);
-        resultDiv.innerHTML = "❌ Payment failed or cancelled.";
+        console.error("Ошибка платежа:", err);
+        let errorMessage = "❌ Операция отменена";
+        if (err.message.includes("rejected")) {
+          errorMessage = "❌ Вы отменили транзакцию";
+        } else if (err.message.includes("timeout")) {
+          errorMessage = "❌ Время ожидания истекло";
+        }
+        resultDiv.innerHTML = `<div style="color: #d32f2f;">${errorMessage}</div>`;
+      } finally {
+        checkButton.disabled = false;
       }
     }
 
     async function checkToken(address) {
       const resultDiv = document.getElementById("result");
+
       try {
+        // Добавляем задержку между запросами чтобы избежать лимитов API
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         const res = await fetch(`https://tonapi.io/v2/tokens/${address}`);
+        
         if (!res.ok) {
-          resultDiv.innerHTML += `❌ Token not found in TON API: ${address}<br/><br/>`;
-          return;
+          throw new Error(res.status === 404 ? "Токен не найден" : "Ошибка API");
         }
-        
+
         const data = await res.json();
-        let passed = 0;
-        const checks = [];
+        renderTokenResults(address, data);
         
-        const createdAt = data.metadata?.created_at;
-        const ageOk = createdAt && (Date.now() - new Date(createdAt).getTime() > 90 * 24 * 60 * 60 * 1000);
-        if (ageOk) { passed++; checks.push("✅ Age ≥ 3 months"); } else { checks.push("❌ Age < 3 months or unknown"); }
-        
-        const holders = data.analytics?.holders || 0;
-        if (holders >= 50) { passed++; checks.push(`✅ ${holders} holders`); } else { checks.push(`❌ Only ${holders} holders`); }
-        
-        const price = data.price?.price || 0;
-        if (price > 0.000001) { passed++; checks.push(`✅ Price: ${price.toFixed(6)} TON`); } else { checks.push(`❌ Price too low: ${price.toFixed(6)} TON`); }
-        
-        const liquidity = data.analytics?.liquidity_usd || 0;
-        if (liquidity >= 500) { passed++; checks.push(`✅ Liquidity: $${liquidity}`); } else { checks.push(`❌ Liquidity too low: $${liquidity}`); }
-        
-        const status = passed >= 3 ? "✅ Token is eligible for collateral." : "❌ Token does not meet eligibility criteria.";
-        
-        resultDiv.innerHTML += `
-          <strong>${data.name || 'Unknown'}:</strong><br/>
-          ${checks.join('<br/>')}<br/><strong>${status}</strong><br/><br/>
-        `;
       } catch (err) {
-        console.error("Token check error:", err);
-        resultDiv.innerHTML += `❌ Failed to fetch token data: ${address}<br/><br/>`;
+        console.error("Ошибка проверки токена:", err);
+        resultDiv.innerHTML += `
+          <div style="margin-top: 10px; color: #d32f2f;">
+            ❌ Ошибка при проверке токена ${address}<br>
+            <small>${err.message || "Неизвестная ошибка"}</small>
+          </div><br>
+        `;
       }
+    }
+
+    function renderTokenResults(address, tokenData) {
+      const resultDiv = document.getElementById("result");
+      
+      // Проверяем основные параметры токена
+      const checks = [];
+      let passedChecks = 0;
+
+      // 1. Проверка возраста токена (≥3 месяцев)
+      const createdAt = tokenData.metadata?.created_at;
+      const threeMonthsAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
+      const isOldEnough = createdAt && new Date(createdAt).getTime() < threeMonthsAgo;
+      checks.push({
+        name: "Возраст ≥3 месяцев",
+        passed: isOldEnough,
+        value: createdAt ? new Date(createdAt).toLocaleDateString() : "неизвестно"
+      });
+      if (isOldEnough) passedChecks++;
+
+      // 2. Проверка количества держателей (≥50)
+      const holders = tokenData.analytics?.holders || 0;
+      const hasEnoughHolders = holders >= 50;
+      checks.push({
+        name: "Держателей ≥50",
+        passed: hasEnoughHolders,
+        value: holders
+      });
+      if (hasEnoughHolders) passedChecks++;
+
+      // 3. Проверка цены (>0.000001 TON)
+      const price = tokenData.price?.price || 0;
+      const hasGoodPrice = price > 0.000001;
+      checks.push({
+        name: "Цена > 0.000001 TON",
+        passed: hasGoodPrice,
+        value: price.toFixed(8) + " TON"
+      });
+      if (hasGoodPrice) passedChecks++;
+
+      // 4. Проверка ликвидности (≥$500)
+      const liquidity = tokenData.analytics?.liquidity_usd || 0;
+      const hasEnoughLiquidity = liquidity >= 500;
+      checks.push({
+        name: "Ликвидность ≥$500",
+        passed: hasEnoughLiquidity,
+        value: "$" + liquidity.toFixed(2)
+      });
+      if (hasEnoughLiquidity) passedChecks++;
+
+      // Формируем результат
+      const tokenName = tokenData.name || address.slice(0, 6) + "..." + address.slice(-4);
+      const isEligible = passedChecks >= 3; // Требуется минимум 3 из 4 проверок
+
+      let html = `
+        <div style="margin: 15px 0; padding: 15px; border: 1px solid #eee; border-radius: 8px; background: white;">
+          <strong style="font-size: 1.1em;">${tokenName}</strong>
+          <div style="margin-top: 10px;">
+      `;
+
+      checks.forEach(check => {
+        html += `
+          <div style="margin: 5px 0; display: flex; align-items: center;">
+            <span style="color: ${check.passed ? '#388e3c' : '#d32f2f'}; margin-right: 8px;">
+              ${check.passed ? '✓' : '✗'}
+            </span>
+            <span>${check.name}: <strong>${check.value}</strong></span>
+          </div>
+        `;
+      });
+
+      html += `
+          </div>
+          <div style="margin-top: 10px; font-weight: bold; color: ${isEligible ? '#388e3c' : '#d32f2f'};">
+            ${isEligible ? '✅ Токен подходит в качестве залога' : '❌ Токен не соответствует требованиям'}
+          </div>
+        </div>
+      `;
+
+      resultDiv.innerHTML += html;
     }
   </script>
 </body>
