@@ -18,9 +18,9 @@
   <div id="ton-connect" style="margin-bottom: 20px;"></div>
 
   <h1>AXUS Token Collateral Checker</h1>
-  <p>Connect your TON wallet, pay 0.01 TON and check if your token is eligible for collateral.</p>
+  <p>Connect your TON wallet, pay 0.01 TON and check any token by contract address.</p>
 
-  <input type="text" id="token-address" placeholder="Enter TON token address...">
+  <input type="text" id="token-address" placeholder="Enter TON token contract address">
   <button onclick="initiatePayment()">Check Token (0.01 TON)</button>
 
   <div class="result" id="result"></div>
@@ -29,7 +29,8 @@
 
   <script>
     let tonConnectUI;
-    document.addEventListener("DOMContentLoaded", () => {
+
+    window.addEventListener("load", () => {
       tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
         manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
         buttonRootId: "ton-connect"
@@ -41,7 +42,7 @@
       const resultDiv = document.getElementById("result");
 
       if (!tokenAddress) {
-        resultDiv.innerHTML = "❌ Please enter a token address.";
+        resultDiv.innerHTML = "❌ Please enter a token contract address.";
         return;
       }
 
@@ -56,17 +57,14 @@
       try {
         await tonConnectUI.sendTransaction({
           validUntil: Math.floor(Date.now() / 1000) + 600,
-          messages: [
-            {
-              address: "UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA",
-              amount: "10000000",
-              payload: null
-            }
-          ]
+          messages: [{
+            address: "UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA",
+            amount: "10000000"
+          }]
         });
 
         resultDiv.innerHTML = "✅ Payment received. Checking token...";
-        checkToken(tokenAddress);
+        await checkToken(tokenAddress);
       } catch (err) {
         resultDiv.innerHTML = "❌ Payment failed or cancelled.";
       }
@@ -76,30 +74,55 @@
       const resultDiv = document.getElementById("result");
 
       try {
-        const res = await fetch(`https://tonapi.io/v2/accounts/${address}`);
+        const res = await fetch(`https://tonapi.io/v2/tokens/${address}`);
         if (!res.ok) {
-          resultDiv.innerHTML = `❌ Token not found or invalid address.`;
+          resultDiv.innerHTML = "❌ Token not found or invalid address.";
           return;
         }
 
         const data = await res.json();
+        const metadata = data.metadata || {};
+        const analytics = data.analytics || {};
 
-        // Примерная логика оценки, нужно заменить на актуальные поля, когда API даст доступ
-        const holders = data.holders_count || 0;
-        const price = data.token_price || 0.000001;
-        const total = data.balance ? (parseFloat(data.balance) * price) : 0;
+        const createdAt = metadata.created_at;
+        const ageOk = createdAt && (Date.now() - new Date(createdAt).getTime()) > 90 * 24 * 60 * 60 * 1000;
+        const age = createdAt ? new Date(createdAt).toLocaleDateString() : "Unknown";
 
-        const passed = total >= 3 ? "✅ Token value ≥ 3 USDT" : "❌ Token value < 3 USDT";
+        const holders = analytics.holders || 0;
+        const liquidity = analytics.liquidity_usd || 0;
+        const price = data.price?.price || 0;
+
+        // Запрашиваем баланс пользователя по токену
+        const walletInfo = await tonConnectUI.account;
+        const walletAddress = walletInfo?.address;
+        let userBalance = 0;
+
+        if (walletAddress) {
+          const balanceRes = await fetch(`https://tonapi.io/v2/accounts/${walletAddress}/jettons`);
+          const balanceData = await balanceRes.json();
+          const found = balanceData.balances?.find(j => j.jetton?.address === address);
+          userBalance = found ? Number(found.balance) / 10 ** (found.jetton?.decimals || 9) : 0;
+        }
+
+        const totalValue = userBalance * price;
+        const status = totalValue >= 3
+          ? "✅ Token is eligible for collateral (≥ 3 USDT)"
+          : "❌ Token not eligible (value < 3 USDT)";
 
         resultDiv.innerHTML = `
-          <strong>Estimated value:</strong> $${total.toFixed(4)}<br/>
-          <strong>${passed}</strong>
+          <strong>${data.name || 'Unknown Token'}</strong><br/>
+          <strong>Created:</strong> ${age} ${ageOk ? "✅" : "❌"}<br/>
+          <strong>Holders:</strong> ${holders} ${holders >= 50 ? "✅" : "❌"}<br/>
+          <strong>Liquidity:</strong> $${liquidity} ${liquidity >= 500 ? "✅" : "❌"}<br/>
+          <strong>Price:</strong> ${price.toFixed(6)} TON<br/>
+          <strong>Your balance:</strong> ${userBalance} tokens<br/>
+          <strong>Total value:</strong> ${totalValue.toFixed(4)} USDT<br/><br/>
+          <strong>${status}</strong>
         `;
       } catch (err) {
-        resultDiv.innerHTML = `❌ Failed to fetch token data.`;
+        resultDiv.innerHTML = "❌ Error fetching token data. Please check the address.";
       }
     }
   </script>
-
 </body>
 </html>
