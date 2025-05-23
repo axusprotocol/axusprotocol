@@ -3,44 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Custom TonConnect Button</title>
-  <script src="https://unpkg.com/@tonconnect/sdk@2.1.3/dist/tonconnect-sdk.min.js"></script>
+  <title>TonConnect Test</title>
 </head>
 <body>
-  <h1>Custom TonConnect Button</h1>
-  <button id="connect-wallet" style="padding: 10px 20px; background: #0088CC; color: white; border: none; border-radius: 5px; cursor: pointer;">
-    Connect Wallet
-  </button>
+  <h1>TonConnect Test</h1>
+  <div id="ton-connect-container" style="margin: 20px; padding: 20px; border: 1px solid red;"></div>
 
+  <!-- Загружаем TonConnect UI напрямую с CDN -->
+  <script src="https://unpkg.com/@tonconnect/ui@1.1.3/dist/tonconnect-ui.js"></script>
+  
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      const connectButton = document.getElementById('connect-wallet');
+      console.log('DOM loaded');
       
-      // Создаем экземпляр TonConnect
-      const connector = new TonConnect({
-        manifestUrl: 'https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json'
+      // Проверяем, доступен ли TonConnectUI
+      if (typeof TonConnectUI === 'undefined') {
+        console.error('TonConnectUI is not defined');
+        document.getElementById('ton-connect-container').innerHTML = 
+          '<p style="color: red">Error: TonConnectUI library not loaded</p>';
+        return;
+      }
+      
+      console.log('Creating TonConnectUI instance');
+      
+      // Создаем экземпляр TonConnectUI
+      const tonConnectUI = new TonConnectUI({
+        manifestUrl: 'https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json',
+        buttonRootId: 'ton-connect-container'
       });
       
-      // Обработчик нажатия на кнопку
-      connectButton.addEventListener('click', async () => {
-        try {
-          // Получаем список доступных провайдеров (кошельков)
-          const wallets = await connector.getWallets();
-          
-          // Открываем модальное окно для выбора кошелька
-          // Здесь вам нужно будет создать свой UI для выбора кошелька
-          // Это упрощенный пример
-          if (wallets.length > 0) {
-            const selectedWallet = wallets[0];
-            connector.connect(selectedWallet);
-          } else {
-            alert('No wallets available');
-          }
-        } catch (error) {
-          console.error('Error connecting wallet:', error);
-          alert('Error connecting wallet: ' + error.message);
-        }
-      });
+      console.log('TonConnectUI instance created:', tonConnectUI);
     });
   </script>
 </body>
