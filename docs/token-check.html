@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AXUS | Token Collateral Check</title>
-  <script src="https://unpkg.com/@tonconnect/ui@0.0.26"></script>
+  <script src="https://unpkg.com/@tonconnect/ui@latest"></script>
   <style>
     body { font-family: Arial, sans-serif; max-width: 850px; margin: auto; padding: 2rem; line-height: 1.6; color: #111; background: #fff; }
     h1, h2 { color: #007aff; }
@@ -15,23 +15,13 @@
 </head>
 <body>
 
-  <script>
-  window.addEventListener("DOMContentLoaded", () => {
-    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-      manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
-      buttonRootId: "ton-connect"
-    });
-  });
-</script>
-<div id="ton-connect" style="margin-top: 40px;"></div>
+  <div id="ton-connect" style="margin-bottom: 20px;"></div>
 
   <h1>AXUS Token Collateral Checker</h1>
-  <p>Connect your TON wallet, pay 0.01 TON and check up to 3 tokens for eligibility.</p>
+  <p>Connect your TON wallet, pay 0.01 TON and check a token for eligibility.</p>
 
-  <input type="text" id="token1" placeholder="Token address #1">
-  <input type="text" id="token2" placeholder="Token address #2">
-  <input type="text" id="token3" placeholder="Token address #3">
-  <button onclick="initiatePayment()">Check Tokens (0.01 TON)</button>
+  <input type="text" id="token" placeholder="Enter token address...">
+  <button onclick="initiatePayment()">Check Token (0.01 TON)</button>
 
   <div class="result" id="result"></div>
 
@@ -40,26 +30,19 @@
   <script>
     let tonConnectUI;
 
-    window.addEventListener("DOMContentLoaded", () => {
-      tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+    window.addEventListener("load", () => {
+      tonConnectUI = new TonConnectUI({
         manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
         buttonRootId: "ton-connect"
       });
-
-      window.tonConnectUI = tonConnectUI;
     });
 
     async function initiatePayment() {
-      const inputs = [
-        document.getElementById("token1").value.trim(),
-        document.getElementById("token2").value.trim(),
-        document.getElementById("token3").value.trim()
-      ].filter(Boolean);
-
+      const token = document.getElementById("token").value.trim();
       const resultDiv = document.getElementById("result");
 
-      if (inputs.length === 0) {
-        resultDiv.innerHTML = "❌ Please enter at least one token address.";
+      if (!token) {
+        resultDiv.innerHTML = "❌ Please enter a token address.";
         return;
       }
 
@@ -74,20 +57,15 @@
       try {
         await tonConnectUI.sendTransaction({
           validUntil: Math.floor(Date.now() / 1000) + 600,
-          messages: [
-            {
-              address: "UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA",
-              amount: "10000000",
-              payload: null
-            }
-          ]
+          messages: [{
+            address: "UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA",
+            amount: "10000000", // 0.01 TON
+            payload: null
+          }]
         });
 
-        resultDiv.innerHTML = "<strong>✅ Payment received. Checking tokens...</strong><br/><br/>";
-        for (let address of inputs) {
-          resultDiv.innerHTML += `<em>🔎 ${address}</em><br/>`;
-          await checkToken(address);
-        }
+        resultDiv.innerHTML = "<strong>✅ Payment received. Checking token...</strong><br/><br/>";
+        checkToken(token);
       } catch (err) {
         resultDiv.innerHTML = "❌ Payment failed or cancelled.";
       }
