@@ -1,131 +1,114 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AXUS | Проверка токенов</title>
-  <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AXUS | Token Collateral Check</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-      background: #f5f5f5;
-    }
-    
-    #wallet-connection {
-      margin: 20px 0;
-      padding: 20px;
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    
-    .connect-btn {
-      background: #0088cc;
+    body { font-family: Arial, sans-serif; max-width: 850px; margin: auto; padding: 2rem; line-height: 1.6; color: #111; background: #fff; }
+    h1, h2 { color: #007aff; }
+    input, button { padding: 10px; margin: 5px 0; width: 100%; max-width: 400px; }
+    .result { margin-top: 20px; padding: 1rem; border: 1px solid #ccc; background: #f9f9f9; }
+    .back-button { margin-top: 2rem; display: inline-block; background: #e5e5e5; color: #333; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
+    .tonkeeper-button {
+      display: inline-block;
+      background: #0088CC;
       color: white;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 5px;
+      padding: 10px 20px;
+      border-radius: 8px;
       cursor: pointer;
-      font-size: 16px;
-    }
-    
-    .status {
-      margin-top: 10px;
-      padding: 10px;
-      border-radius: 5px;
-    }
-    
-    .connected {
-      background: #e6f7e6;
-      color: #2e7d32;
-    }
-    
-    .disconnected {
-      background: #ffebee;
-      color: #c62828;
-    }
-    
-    .error {
-      background: #fff3e0;
-      color: #e65100;
+      font-weight: bold;
+      border: none;
+      margin-bottom: 20px;
+      text-decoration: none;
     }
   </style>
 </head>
 <body>
+  <h1>AXUS Token Collateral Checker</h1>
+  
+  <p>To check tokens for eligibility, please send 0.01 TON to the AXUS protocol address:</p>
+  
+  <div style="margin: 20px 0; padding: 10px; background: #f5f5f5; border-radius: 5px; word-break: break-all;">
+    <strong>UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA</strong>
+  </div>
+  
+  <a href="https://app.tonkeeper.com/transfer/UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA?amount=10000000" 
+     class="tonkeeper-button" 
+     target="_blank">
+    Open in Tonkeeper
+  </a>
+  
+  <p>After payment, enter up to 3 token addresses to check:</p>
+  
+  <input type="text" id="token1" placeholder="Token address #1">
+  <input type="text" id="token2" placeholder="Token address #2">
+  <input type="text" id="token3" placeholder="Token address #3">
+  <button id="check-button">Check Tokens</button>
+  
+  <div class="result" id="result"></div>
+  <a class="back-button" href="index-en.html">← Back to main site</a>
 
-<div id="wallet-connection">
-  <h2>Подключение кошелька</h2>
-  <button id="connect-btn" class="connect-btn">Подключить кошелек</button>
-  <div id="connection-status" class="status disconnected">Кошелек не подключен</div>
-</div>
-
-<script>
-  // Инициализация TonConnect
-  const connector = new TonConnect.TonConnect({
-    manifestUrl: 'https://ton-connect.github.io/demo-dapp-with-react/tonconnect-manifest.json'
-  });
-
-  // Элементы интерфейса
-  const connectBtn = document.getElementById('connect-btn');
-  const statusDiv = document.getElementById('connection-status');
-
-  // Проверка существующего подключения
-  async function checkConnection() {
-    try {
-      const walletConnectionSource = {
-        jsBridgeKey: 'tonconnect'
-      };
-
-      const connection = await connector.connect(walletConnectionSource);
+  <script>
+    document.getElementById("check-button").addEventListener("click", async function() {
+      const inputs = [
+        document.getElementById("token1").value.trim(),
+        document.getElementById("token2").value.trim(),
+        document.getElementById("token3").value.trim()
+      ].filter(Boolean);
       
-      if (connection) {
-        statusDiv.textContent = `Кошелек подключен: ${connection.device.appName}`;
-        statusDiv.className = 'status connected';
-        connectBtn.textContent = 'Отключить';
-      } else {
-        statusDiv.textContent = 'Кошелек не подключен';
-        statusDiv.className = 'status disconnected';
-        connectBtn.textContent = 'Подключить кошелек';
+      const resultDiv = document.getElementById("result");
+      
+      if (inputs.length === 0) {
+        resultDiv.innerHTML = "❌ Please enter at least one token address.";
+        return;
       }
-    } catch (error) {
-      console.error('Ошибка подключения:', error);
-      statusDiv.textContent = 'Ошибка подключения: ' + error.message;
-      statusDiv.className = 'status error';
-    }
-  }
+      
+      resultDiv.innerHTML = "<strong>Checking tokens...</strong><br/><br/>";
+      
+      for (let address of inputs) {
+        resultDiv.innerHTML += `<em>🔎 ${address}</em><br/>`;
+        await checkToken(address);
+      }
+    });
 
-  // Обработчик кнопки подключения
-  connectBtn.addEventListener('click', async () => {
-    if (connector.connected) {
-      await connector.disconnect();
-      statusDiv.textContent = 'Кошелек отключен';
-      statusDiv.className = 'status disconnected';
-      connectBtn.textContent = 'Подключить кошелек';
-    } else {
+    async function checkToken(address) {
+      const resultDiv = document.getElementById("result");
       try {
-        statusDiv.textContent = 'Откройте приложение кошелька...';
-        statusDiv.className = 'status';
+        const res = await fetch(`https://tonapi.io/v2/tokens/${address}`);
+        if (!res.ok) {
+          resultDiv.innerHTML += `❌ Token not found in TON API: ${address}<br/><br/>`;
+          return;
+        }
         
-        const wallets = await connector.getWallets();
-        await connector.connect(wallets[0]);
+        const data = await res.json();
+        let passed = 0;
+        const checks = [];
         
-        statusDiv.textContent = `Кошелек подключен: ${wallets[0].name}`;
-        statusDiv.className = 'status connected';
-        connectBtn.textContent = 'Отключить';
-      } catch (error) {
-        console.error('Ошибка подключения:', error);
-        statusDiv.textContent = 'Ошибка подключения: ' + error.message;
-        statusDiv.className = 'status error';
+        const createdAt = data.metadata?.created_at;
+        const ageOk = createdAt && (Date.now() - new Date(createdAt).getTime() > 90 * 24 * 60 * 60 * 1000);
+        if (ageOk) { passed++; checks.push("✅ Age ≥ 3 months"); } else { checks.push("❌ Age < 3 months or unknown"); }
+        
+        const holders = data.analytics?.holders || 0;
+        if (holders >= 50) { passed++; checks.push(`✅ ${holders} holders`); } else { checks.push(`❌ Only ${holders} holders`); }
+        
+        const price = data.price?.price || 0;
+        if (price > 0.000001) { passed++; checks.push(`✅ Price: ${price.toFixed(6)} TON`); } else { checks.push(`❌ Price too low: ${price.toFixed(6)} TON`); }
+        
+        const liquidity = data.analytics?.liquidity_usd || 0;
+        if (liquidity >= 500) { passed++; checks.push(`✅ Liquidity: $${liquidity}`); } else { checks.push(`❌ Liquidity too low: $${liquidity}`); }
+        
+        const status = passed >= 3 ? "✅ Token is eligible for collateral." : "❌ Token does not meet eligibility criteria.";
+        
+        resultDiv.innerHTML += `
+          <strong>${data.name || 'Unknown'}:</strong><br/>
+          ${checks.join('<br/>')}<br/><strong>${status}</strong><br/><br/>
+        `;
+      } catch (err) {
+        console.error("Token check error:", err);
+        resultDiv.innerHTML += `❌ Failed to fetch token data: ${address}<br/><br/>`;
       }
     }
-  });
-
-  // Проверяем подключение при загрузке
-  window.addEventListener('load', checkConnection);
-</script>
-
+  </script>
 </body>
 </html>
