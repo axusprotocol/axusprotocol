@@ -36,83 +36,80 @@
       window.tonConnectUI = tonConnectUI;
     });
 
-    async function initiatePayment() {
-      const tokenAddress = document.getElementById("token-address").value.trim();
-      const resultDiv = document.getElementById("result");
-
-      if (!tokenAddress) {
-        resultDiv.innerHTML = "❌ Please enter a token address.";
-        return;
-      }
-
-      const connected = await window.tonConnectUI.connected;
-      if (!connected) {
-        resultDiv.innerHTML = "❌ Please connect your wallet first.";
-        return;
-      }
-
-      resultDiv.innerHTML = "⏳ Awaiting payment confirmation...";
-
-      try {
-        await window.tonConnectUI.sendTransaction({
-          validUntil: Math.floor(Date.now() / 1000) + 600,
-          messages: [
-            {
-              address: "UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA",
-              amount: "10000000",
-              payload: null
-            }
-          ]
-        });
-
-        resultDiv.innerHTML = "✅ Payment received. Checking token...";
-        checkToken(tokenAddress);
-      } catch (err) {
-        resultDiv.innerHTML = "❌ Payment failed or cancelled.";
-      }
-    }
-
     async function checkToken(address) {
-      const resultDiv = document.getElementById("result");
+  const resultDiv = document.getElementById("result");
 
-      try {
-        const res = await fetch(`https://tonapi.io/v2/jettons/${address}`);
-        if (!res.ok) {
-          resultDiv.innerHTML = `❌ Token not found: ${address}`;
-          return;
-        }
-
-        const data = await res.json();
-        let passed = 0;
-        const checks = [];
-
-        const name = data.metadata?.name || 'Unknown';
-        const createdAt = data.metadata?.created_at;
-        const ageOk = createdAt && (Date.now() - new Date(createdAt).getTime() > 90 * 24 * 60 * 60 * 1000);
-        if (ageOk) { passed++; checks.push("✅ Age ≥ 3 months"); } else { checks.push("❌ Age < 3 months or unknown"); }
-
-        const holders = data.holders_count || 0;
-        if (holders >= 50) { passed++; checks.push(`✅ ${holders} holders`); } else { checks.push(`❌ Only ${holders} holders`); }
-
-        const price = data.price?.prices?.usd || 0;
-        if (price > 0.000001) { passed++; checks.push(`✅ Price: $${price.toFixed(6)}`); } else { checks.push(`❌ Price too low: $${price.toFixed(6)}`); }
-
-        const liquidity = data.liquidity_usd || 0;
-        if (liquidity >= 500) { passed++; checks.push(`✅ Liquidity: $${liquidity}`); } else { checks.push(`❌ Liquidity too low: $${liquidity}`); }
-
-        const status = passed >= 3 ? "✅ Token is eligible for collateral." : "❌ Token does not meet eligibility criteria.";
-
-        resultDiv.innerHTML = `
-          <strong>Token:</strong> ${name}<br/>
-          <strong>Checks:</strong><br/>
-          ${checks.join('<br/>')}<br/><br/>
-          <strong>${status}</strong>
-        `;
-
-      } catch (err) {
-        resultDiv.innerHTML = `❌ Failed to fetch token data: ${address}`;
-      }
+  try {
+    const res = await fetch(`https://tonapi.io/v2/jettons/${address}`);
+    if (!res.ok) {
+      resultDiv.innerHTML = `❌ Token not found in TON API: ${address}`;
+      return;
     }
+
+    const data = await res.json();
+
+    let passed = 0;
+    const checks = [];
+
+    // 1. Возраст токена
+    const createdAt = data.metadata?.created_at;
+    const isOldEnough = createdAt && (Date.now() - new Date(createdAt).getTime() > 90 * 24 * 60 * 60 * 1000);
+    if (isOldEnough) {
+      passed++;
+      checks.push("✅ Age ≥ 3 months");
+    } else {
+      checks.push("❌ Age < 3 months");
+    }
+
+    // 2. Холдера
+    const holders = data.holders_count || 0;
+    if (holders >= 50) {
+      passed++;
+      checks.push(`✅ Holders: ${holders}`);
+    } else {
+      checks.push(`❌ Holders: ${holders}`);
+    }
+
+    // 3. Цена и 4. Рыночная стоимость
+    const price = data.price?.price || 0;
+    const balance = data.total_supply?.decimals ? parseFloat(data.total_supply.amount) / (10 ** data.total_supply.decimals) : 0;
+    const marketValue = balance * price;
+
+    if (price > 0) {
+      checks.push(`✅ Price: ${price.toFixed(6)} TON`);
+    } else {
+      checks.push("❌ Price: 0 TON");
+    }
+
+    if (marketValue >= 3) {
+      passed++;
+      checks.push(`✅ Market value: $${marketValue.toFixed(2)}`);
+    } else {
+      checks.push(`❌ Market value: $${marketValue.toFixed(2)} (min $3 required)`);
+    }
+
+    // 5. Ликвидность
+    const liquidity = data.liquidity?.usd || 0;
+    if (liquidity >= 500) {
+      passed++;
+      checks.push(`✅ Liquidity: $${liquidity}`);
+    } else {
+      checks.push(`❌ Liquidity: $${liquidity}`);
+    }
+
+    // Результат
+    const status = passed >= 3 ? "✅ Token accepted as collateral." : "❌ Token rejected. Doesn't meet minimum 3 USDT value.";
+
+    resultDiv.innerHTML = `
+      <strong>Token:</strong> ${data.metadata?.name || 'Unknown'}<br/>
+      ${checks.join('<br/>')}<br/><br/>
+      <strong>${status}</strong>
+    `;
+  } catch (err) {
+    resultDiv.innerHTML = `❌ Failed to fetch token data.`;
+    console.error(err);
+  }
+}
   </script>
 </body>
 </html>
