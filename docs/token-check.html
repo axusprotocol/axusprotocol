@@ -2,113 +2,39 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AXUS | Token Collateral Check</title>
+  <title>AXUS Wallet Connect (Simple)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: Arial, sans-serif; max-width: 850px; margin: auto; padding: 2rem; line-height: 1.6; color: #111; background: #fff; }
-    h1, h2 { color: #007aff; }
-    input, button { padding: 10px; margin: 5px 0; width: 100%; max-width: 400px; }
-    .result { margin-top: 20px; padding: 1rem; border: 1px solid #ccc; background: #f9f9f9; }
-    .back-button { margin-top: 2rem; display: inline-block; background: #e5e5e5; color: #333; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
-    .tonkeeper-button {
-      display: inline-block;
-      background: #0088CC;
+    body { font-family: Arial; padding: 2rem; max-width: 700px; margin: auto; }
+    button {
+      background-color: #007aff;
       color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: bold;
       border: none;
-      margin-bottom: 20px;
-      text-decoration: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
     }
+    #msg { margin-top: 1rem; font-weight: bold; }
   </style>
 </head>
 <body>
-  <h1>AXUS Token Collateral Checker</h1>
-  
-  <p>To check tokens for eligibility, please send 0.01 TON to the AXUS protocol address:</p>
-  
-  <div style="margin: 20px 0; padding: 10px; background: #f5f5f5; border-radius: 5px; word-break: break-all;">
-    <strong>UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA</strong>
-  </div>
-  
-  <a href="https://app.tonkeeper.com/transfer/UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA?amount=10000000" 
-     class="tonkeeper-button" 
-     target="_blank">
-    Open in Tonkeeper
-  </a>
-  
-  <p>After payment, enter up to 3 token addresses to check:</p>
-  
-  <input type="text" id="token1" placeholder="Token address #1">
-  <input type="text" id="token2" placeholder="Token address #2">
-  <input type="text" id="token3" placeholder="Token address #3">
-  <button id="check-button">Check Tokens</button>
-  
-  <div class="result" id="result"></div>
-  <a class="back-button" href="index-en.html">← Back to main site</a>
+
+  <h1>AXUS Protocol: Connect TON Wallet</h1>
+  <p>Click below to connect via Tonkeeper (mobile):</p>
+
+  <button onclick="connectWallet()">🔗 Open in Tonkeeper</button>
+  <div id="msg"></div>
 
   <script>
-    document.getElementById("check-button").addEventListener("click", async function() {
-      const inputs = [
-        document.getElementById("token1").value.trim(),
-        document.getElementById("token2").value.trim(),
-        document.getElementById("token3").value.trim()
-      ].filter(Boolean);
-      
-      const resultDiv = document.getElementById("result");
-      
-      if (inputs.length === 0) {
-        resultDiv.innerHTML = "❌ Please enter at least one token address.";
-        return;
-      }
-      
-      resultDiv.innerHTML = "<strong>Checking tokens...</strong><br/><br/>";
-      
-      for (let address of inputs) {
-        resultDiv.innerHTML += `<em>🔎 ${address}</em><br/>`;
-        await checkToken(address);
-      }
-    });
-
-    async function checkToken(address) {
-      const resultDiv = document.getElementById("result");
-      try {
-        const res = await fetch(`https://tonapi.io/v2/tokens/${address}`);
-        if (!res.ok) {
-          resultDiv.innerHTML += `❌ Token not found in TON API: ${address}<br/><br/>`;
-          return;
-        }
-        
-        const data = await res.json();
-        let passed = 0;
-        const checks = [];
-        
-        const createdAt = data.metadata?.created_at;
-        const ageOk = createdAt && (Date.now() - new Date(createdAt).getTime() > 90 * 24 * 60 * 60 * 1000);
-        if (ageOk) { passed++; checks.push("✅ Age ≥ 3 months"); } else { checks.push("❌ Age < 3 months or unknown"); }
-        
-        const holders = data.analytics?.holders || 0;
-        if (holders >= 50) { passed++; checks.push(`✅ ${holders} holders`); } else { checks.push(`❌ Only ${holders} holders`); }
-        
-        const price = data.price?.price || 0;
-        if (price > 0.000001) { passed++; checks.push(`✅ Price: ${price.toFixed(6)} TON`); } else { checks.push(`❌ Price too low: ${price.toFixed(6)} TON`); }
-        
-        const liquidity = data.analytics?.liquidity_usd || 0;
-        if (liquidity >= 500) { passed++; checks.push(`✅ Liquidity: $${liquidity}`); } else { checks.push(`❌ Liquidity too low: $${liquidity}`); }
-        
-        const status = passed >= 3 ? "✅ Token is eligible for collateral." : "❌ Token does not meet eligibility criteria.";
-        
-        resultDiv.innerHTML += `
-          <strong>${data.name || 'Unknown'}:</strong><br/>
-          ${checks.join('<br/>')}<br/><strong>${status}</strong><br/><br/>
-        `;
-      } catch (err) {
-        console.error("Token check error:", err);
-        resultDiv.innerHTML += `❌ Failed to fetch token data: ${address}<br/><br/>`;
-      }
+    function connectWallet() {
+      const link = `https://app.tonkeeper.com/ton-connect?connect=${encodeURIComponent(JSON.stringify({
+        manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json"
+      }))}`;
+      window.open(link, "_blank");
+      document.getElementById("msg").innerText = "🔄 Opening Tonkeeper...";
     }
   </script>
+
 </body>
 </html>
