@@ -4,135 +4,41 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Custom TonConnect Button</title>
-  <!-- Используем правильную версию SDK -->
-  <script src="https://unpkg.com/@tonconnect/sdk@latest"></script>
-  <style>
-    #wallet-modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.5);
-      z-index: 1000;
-    }
-    .modal-content {
-      background-color: white;
-      margin: 10% auto;
-      padding: 20px;
-      width: 300px;
-      border-radius: 10px;
-    }
-    .wallet-option {
-      display: flex;
-      align-items: center;
-      padding: 10px;
-      margin: 5px 0;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-    .wallet-option:hover {
-      background-color: #f0f0f0;
-    }
-    .wallet-icon {
-      width: 32px;
-      height: 32px;
-      margin-right: 10px;
-    }
-  </style>
+  <script src="https://unpkg.com/@tonconnect/sdk@2.1.3/dist/tonconnect-sdk.min.js"></script>
 </head>
 <body>
   <h1>Custom TonConnect Button</h1>
   <button id="connect-wallet" style="padding: 10px 20px; background: #0088CC; color: white; border: none; border-radius: 5px; cursor: pointer;">
     Connect Wallet
   </button>
-  <div id="wallet-status"></div>
-
-  <!-- Модальное окно для выбора кошелька -->
-  <div id="wallet-modal">
-    <div class="modal-content">
-      <h2>Select Wallet</h2>
-      <div id="wallet-list"></div>
-    </div>
-  </div>
 
   <script>
-    document.addEventListener('DOMContentLoaded', async function() {
+    document.addEventListener('DOMContentLoaded', function() {
       const connectButton = document.getElementById('connect-wallet');
-      const walletModal = document.getElementById('wallet-modal');
-      const walletList = document.getElementById('wallet-list');
-      const walletStatus = document.getElementById('wallet-status');
       
       // Создаем экземпляр TonConnect
-      const connector = new TonConnect.TonConnect({
+      const connector = new TonConnect({
         manifestUrl: 'https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json'
       });
       
-      // Проверяем, есть ли уже подключенный кошелек
-      connector.onStatusChange((wallet) => {
-        if (wallet) {
-          connectButton.textContent = 'Wallet Connected';
-          connectButton.style.background = '#4CAF50';
-          walletStatus.innerHTML = `
-            <p>Connected: ${wallet.device.appName}</p>
-            <p>Address: ${wallet.account.address}</p>
-            <button id="disconnect-wallet">Disconnect</button>
-          `;
-          document.getElementById('disconnect-wallet').addEventListener('click', () => {
-            connector.disconnect();
-            connectButton.textContent = 'Connect Wallet';
-            connectButton.style.background = '#0088CC';
-            walletStatus.innerHTML = '';
-          });
-        } else {
-          connectButton.textContent = 'Connect Wallet';
-          connectButton.style.background = '#0088CC';
-          walletStatus.innerHTML = '';
-        }
-      });
-      
-      // Обработчик нажатия на кнопку подключения
+      // Обработчик нажатия на кнопку
       connectButton.addEventListener('click', async () => {
         try {
           // Получаем список доступных провайдеров (кошельков)
           const wallets = await connector.getWallets();
           
+          // Открываем модальное окно для выбора кошелька
+          // Здесь вам нужно будет создать свой UI для выбора кошелька
+          // Это упрощенный пример
           if (wallets.length > 0) {
-            // Отображаем модальное окно с кошельками
-            walletList.innerHTML = '';
-            wallets.forEach(wallet => {
-              const walletOption = document.createElement('div');
-              walletOption.className = 'wallet-option';
-              walletOption.innerHTML = `
-                <img src="${wallet.imageUrl}" alt="${wallet.name}" class="wallet-icon">
-                <span>${wallet.name}</span>
-              `;
-              walletOption.addEventListener('click', () => {
-                // Подключаемся к выбранному кошельку
-                connector.connect({
-                  jsBridgeKey: wallet.jsBridgeKey,
-                  universalLink: wallet.universalLink,
-                  bridgeUrl: wallet.bridgeUrl
-                });
-                walletModal.style.display = 'none';
-              });
-              walletList.appendChild(walletOption);
-            });
-            walletModal.style.display = 'block';
+            const selectedWallet = wallets[0];
+            connector.connect(selectedWallet);
           } else {
             alert('No wallets available');
           }
         } catch (error) {
           console.error('Error connecting wallet:', error);
           alert('Error connecting wallet: ' + error.message);
-        }
-      });
-      
-      // Закрытие модального окна при клике вне его содержимого
-      walletModal.addEventListener('click', (event) => {
-        if (event.target === walletModal) {
-          walletModal.style.display = 'none';
         }
       });
     });
