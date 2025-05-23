@@ -1,7 +1,5 @@
 {
-  "name": "AXUS Protocol",
   "url": "https://axusprotocol.github.io/axusprotocol/",
-  "iconUrl": "https://axusprotocol.github.io/axusprotocol/assets/axus-logo.png",
-  "termsOfUseUrl": "https://axusprotocol.github.io/axusprotocol/terms.html",
-  "privacyPolicyUrl": "https://axusprotocol.github.io/axusprotocol/privacy.html"
+  "name": "AXUS Protocol",
+  "iconUrl": "https://axusprotocol.github.io/axusprotocol/assets/axus-logo.png"
 }
