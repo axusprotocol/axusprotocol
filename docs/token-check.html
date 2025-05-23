@@ -31,11 +31,17 @@
     let tonConnectUI;
 
     window.addEventListener("load", () => {
-      tonConnectUI = new TonConnectUI({
-        manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
-        buttonRootId: "ton-connect"
-      });
+  console.log("Page loaded, initializing TonConnect...");
+  try {
+    tonConnectUI = new TonConnectUI({
+      manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
+      buttonRootId: "ton-connect"
     });
+    console.log("TonConnect initialized successfully");
+  } catch (error) {
+    console.error("Error initializing TonConnect:", error);
+  }
+});
 
     async function initiatePayment() {
       const token = document.getElementById("token").value.trim();
