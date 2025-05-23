@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AXUS | Wallet Connect (manual)</title>
+  <script src="https://unpkg.com/@tonconnect/sdk@latest"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 2rem; max-width: 700px; margin: auto; }
+    button { padding: 10px 20px; font-size: 16px; margin-top: 1rem; }
+    #address { margin-top: 1rem; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <h1>AXUS Protocol Wallet Connect (Beta)</h1>
+  <p>Click the button below to connect your TON wallet.</p>
+
+  <button id="connect-btn">🔌 Connect Wallet</button>
+  <div id="address"></div>
+
+  <script>
+    const tonConnect = new tonConnectSDK.TonConnect({
+      manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json"
+    });
+
+    document.getElementById("connect-btn").addEventListener("click", async () => {
+      try {
+        await tonConnect.connectWallet();
+        const wallet = tonConnect.wallet;
+        if (wallet) {
+          document.getElementById("address").innerText = `✅ Connected: ${wallet.account.address}`;
+        } else {
+          document.getElementById("address").innerText = "❌ Wallet not connected.";
+        }
+      } catch (e) {
+        document.getElementById("address").innerText = "❌ Error connecting wallet.";
+        console.error(e);
+      }
+    });
+  </script>
+
+</body>
+</html>
