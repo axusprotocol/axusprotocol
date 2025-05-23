@@ -3,33 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AXUS Wallet Connect</title>
+  <title>AXUS Wallet Connect (Beta)</title>
   <script src="https://unpkg.com/@tonconnect/ui@latest"></script>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 2rem; background: #f9f9f9; color: #222; text-align: center; }
-    h1 { color: #007aff; }
-    #wallet-address { margin-top: 20px; font-weight: bold; }
-  </style>
 </head>
-<body>
+<body style="font-family:sans-serif; padding: 2rem;">
+
   <h1>AXUS Wallet Connect (Beta)</h1>
   <p>Click the button below to connect your TON wallet.</p>
   <div id="ton-connect" style="margin-top: 20px;"></div>
-  <div id="wallet-address"></div>
 
   <script>
-    let tonConnectUI;
-
     window.addEventListener("DOMContentLoaded", () => {
-      tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+      new TON_CONNECT_UI.TonConnectUI({
         manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
         buttonRootId: "ton-connect"
-      });
-
-      tonConnectUI.connectionRestored.then(() => {
-        if (tonConnectUI.account) {
-          document.getElementById("wallet-address").textContent = "Connected: " + tonConnectUI.account.address;
-        }
       });
     });
   </script>
