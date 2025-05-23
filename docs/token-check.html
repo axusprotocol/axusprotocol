@@ -30,36 +30,22 @@
   <script>
     let tonConnectUI;
 
-    window.addEventListener("load", async () => {
-  console.log("Page loaded, initializing TonConnect...");
+    window.addEventListener("load", () => {
+  const tonConnectUI = new TonConnectUI({
+    manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json"
+  });
   
-  // Проверяем, загрузилась ли библиотека
-  if (typeof TonConnectUI === 'undefined') {
-    console.error("TonConnectUI is not defined. Library might not be loaded correctly.");
-    document.getElementById("ton-connect").innerHTML = 
-      "<div style='color:red'>Error: TonConnect library not loaded</div>";
-    return;
-  }
-  
-  try {
-    tonConnectUI = new TonConnectUI({
-      manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
-      buttonRootId: "ton-connect"
-    });
-    
-    console.log("TonConnect initialized successfully");
-    
-    // Проверяем, создан ли экземпляр правильно
-    if (!tonConnectUI) {
-      console.error("tonConnectUI instance is null or undefined after initialization");
+  // Вручную создаем кнопку
+  const connectButton = tonConnectUI.createButton({
+    language: 'en',
+    uiPreferences: {
+      theme: 'light'
     }
-  } catch (error) {
-    console.error("Error initializing TonConnect:", error);
-    document.getElementById("ton-connect").innerHTML = 
-      `<div style='color:red'>Error initializing TonConnect: ${error.message}</div>`;
-  }
+  });
+  
+  // Добавляем кнопку в контейнер
+  document.getElementById("ton-connect").appendChild(connectButton);
 });
-
 
     async function initiatePayment() {
       const token = document.getElementById("token").value.trim();
