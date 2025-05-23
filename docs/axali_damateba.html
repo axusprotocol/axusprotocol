@@ -74,7 +74,7 @@
     async function checkToken(address) {
       const resultDiv = document.getElementById("result");
       try {
-        const res = await fetch(`https://tonapi.io/v2/tokens/${address}`);
+        const res = await fetch(`https://tonapi.io/v2/jettons/${address}`);
         if (!res.ok) {
           resultDiv.innerHTML = `❌ Token not found: ${address}`;
           return;
