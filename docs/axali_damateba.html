@@ -6,11 +6,11 @@
   <title>AXUS | Token Collateral Check</title>
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 850px; margin: auto; padding: 2rem; background: #fff; color: #111; }
-    h1 { color: #007aff; }
-    input, button { padding: 10px; margin: 10px 0; width: 100%; max-width: 400px; }
+    body { font-family: Arial, sans-serif; max-width: 850px; margin: auto; padding: 2rem; line-height: 1.6; color: #111; background: #fff; }
+    h1, h2 { color: #007aff; }
+    input, button { padding: 10px; margin: 5px 0; width: 100%; max-width: 400px; }
     .result { margin-top: 20px; padding: 1rem; border: 1px solid #ccc; background: #f9f9f9; }
-    .back-button { display: inline-block; margin-top: 20px; background: #eee; padding: 10px 20px; border-radius: 6px; text-decoration: none; color: #333; }
+    .back-button { margin-top: 2rem; display: inline-block; background: #e5e5e5; color: #333; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
   </style>
 </head>
 <body>
@@ -18,19 +18,17 @@
   <div id="ton-connect" style="margin-bottom: 20px;"></div>
 
   <h1>AXUS Token Collateral Checker</h1>
-  <p>Connect your wallet, pay 0.01 TON and check if your token is eligible.</p>
+  <p>Connect your TON wallet, pay 0.01 TON and check if your token is eligible for collateral.</p>
 
-  <input type="text" id="token-address" placeholder="Jetton contract address (base64)...">
-  <input type="number" id="token-amount" placeholder="How many tokens you own?">
+  <input type="text" id="token-address" placeholder="Enter Jetton address (base64)">
+  <input type="number" id="token-amount" placeholder="How many tokens you own">
   <button onclick="initiatePayment()">Check Token (0.01 TON)</button>
 
   <div class="result" id="result"></div>
-  <a class="back-button" href="index-en.html">← Back to main site</a>
 
   <script>
-    let tonConnectUI;
     document.addEventListener("DOMContentLoaded", async () => {
-      tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+      const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
         manifestUrl: "https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json",
         buttonRootId: "ton-connect"
       });
@@ -38,88 +36,98 @@
     });
 
     async function initiatePayment() {
-      const token = document.getElementById("token-address").value.trim();
-      const amount = parseFloat(document.getElementById("token-amount").value.trim());
+      const tokenAddress = document.getElementById("token-address").value.trim();
+      const tokenAmount = parseFloat(document.getElementById("token-amount").value.trim());
       const resultDiv = document.getElementById("result");
 
-      if (!token || isNaN(amount) || amount <= 0) {
-        resultDiv.innerHTML = "❌ Please enter a valid token address and amount.";
+      if (!tokenAddress || isNaN(tokenAmount)) {
+        resultDiv.innerHTML = "❌ Enter token address and how many tokens you hold.";
         return;
       }
 
-      const connected = await tonConnectUI.connected;
+      const connected = await window.tonConnectUI.connected;
       if (!connected) {
-        resultDiv.innerHTML = "❌ Please connect your wallet first.";
+        resultDiv.innerHTML = "❌ Please connect your wallet.";
         return;
       }
 
       resultDiv.innerHTML = "⏳ Awaiting payment confirmation...";
 
       try {
-        await tonConnectUI.sendTransaction({
+        await window.tonConnectUI.sendTransaction({
           validUntil: Math.floor(Date.now() / 1000) + 600,
-          messages: [{
-            address: "UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA",
-            amount: "10000000", // 0.01 TON
-            payload: null
-          }]
+          messages: [
+            {
+              address: "UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA",
+              amount: "10000000",
+              payload: null
+            }
+          ]
         });
 
         resultDiv.innerHTML = "✅ Payment received. Checking token...";
-        checkToken(token, amount);
+        checkToken(tokenAddress, tokenAmount);
       } catch (err) {
-        resultDiv.innerHTML = "❌ Payment failed or cancelled.";
+        resultDiv.innerHTML = "❌ Payment cancelled or failed.";
       }
     }
 
-    async function checkToken(address, amount) {
+    async function checkToken(address, userAmount) {
       const resultDiv = document.getElementById("result");
+
       try {
-        const res = await fetch(`https://tonapi.io/v2/jettons/${address}`);
+        const res = await fetch(`https://api.ston.fi/v1/jetton/info?address=${address}`);
         if (!res.ok) {
-          resultDiv.innerHTML = `❌ Token not found: ${address}`;
+          resultDiv.innerHTML = `❌ Token not found in ston.fi: ${address}`;
           return;
         }
 
         const data = await res.json();
-        const checks = [];
         let passed = 0;
+        const checks = [];
 
-        // 1. Age
-        const created = data.metadata?.created_at;
-        const ageOk = created && (Date.now() - new Date(created).getTime() > 90 * 24 * 60 * 60 * 1000);
-        checks.push(ageOk ? "✅ Age ≥ 3 months" : "❌ Age < 3 months");
-        if (ageOk) passed++;
-
-        // 2. Holders
+        const name = data.name || "Unknown";
         const holders = data.holders_count || 0;
-        checks.push(holders >= 50 ? `✅ Holders: ${holders}` : `❌ Holders: ${holders}`);
-        if (holders >= 50) passed++;
+        const price = parseFloat(data.price_usd) || 0;
+        const liquidity = parseFloat(data.liquidity_usd) || 0;
+        const totalValue = price * userAmount;
 
-        // 3. Price
-        const price = data.price?.price || 0;
-        checks.push(price > 0 ? `✅ Price: ${price.toFixed(6)} TON` : "❌ Price not available");
-        if (price > 0) passed++;
+        if (holders >= 50) {
+          passed++;
+          checks.push(`✅ Holders: ${holders}`);
+        } else {
+          checks.push(`❌ Holders: ${holders}`);
+        }
 
-        // 4. Liquidity
-        const liquidity = data.liquidity?.usd || 0;
-        checks.push(liquidity >= 500 ? `✅ Liquidity: $${liquidity}` : `❌ Liquidity: $${liquidity}`);
-        if (liquidity >= 500) passed++;
+        if (price > 0) {
+          checks.push(`✅ Price: $${price.toFixed(6)}`);
+        } else {
+          checks.push(`❌ Price too low: $${price}`);
+        }
 
-        // 5. Value
-        const value = price * amount;
-        checks.push(value >= 3 ? `✅ Your token value: $${value.toFixed(2)}` : `❌ Your token value: $${value.toFixed(2)} (min $3 required)`);
-        if (value >= 3) passed++;
+        if (totalValue >= 3) {
+          passed++;
+          checks.push(`✅ Your token value: $${totalValue.toFixed(2)} (min $3)`);
+        } else {
+          checks.push(`❌ Your token value: $${totalValue.toFixed(2)} (min $3)`);
+        }
 
-        const accepted = passed >= 3;
+        if (liquidity >= 500) {
+          passed++;
+          checks.push(`✅ Liquidity: $${liquidity}`);
+        } else {
+          checks.push(`❌ Liquidity: $${liquidity}`);
+        }
+
+        const status = passed >= 3 ? "✅ Token accepted as collateral." : "❌ Token rejected.";
+
         resultDiv.innerHTML = `
-          <strong>Token:</strong> ${data.metadata?.name || 'Unknown'}<br/>
-          ${checks.join('<br/>')}<br/><br/>
-          <strong>${accepted ? "✅ Token accepted as collateral." : "❌ Token rejected. Doesn't meet criteria."}</strong>
+          <strong>Token:</strong> ${name}<br/>
+          ${checks.join("<br/>")}<br/><br/>
+          <strong>${status}</strong>
         `;
       } catch (err) {
-        console.error(err);
-        resultDiv.innerHTML = "❌ Failed to check token data.";
+        resultDiv.innerHTML = "❌ Failed to fetch token data.";
       }
     }
   </script>
