@@ -3,36 +3,101 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TonConnect Test</title>
+  <title>TonConnect Basic Test</title>
 </head>
 <body>
-  <h1>TonConnect Test</h1>
-  <div id="ton-connect-container" style="margin: 20px; padding: 20px; border: 1px solid red;"></div>
-
-  <!-- Загружаем TonConnect UI напрямую с CDN -->
-  <script src="https://unpkg.com/@tonconnect/ui@1.1.3/dist/tonconnect-ui.js"></script>
+  <h1>TonConnect Basic Test</h1>
+  <div id="status">Checking TonConnect availability...</div>
   
+  <!-- Загружаем библиотеку напрямую -->
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log('DOM loaded');
+    // Функция для загрузки скрипта
+    function loadScript(url, callback) {
+      const script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = url;
+      script.onload = callback;
+      script.onerror = function() {
+        document.getElementById('status').innerHTML = 
+          `<p style="color: red">Failed to load script from: ${url}</p>`;
+      };
+      document.head.appendChild(script);
+    }
+    
+    // Загружаем TonConnect SDK
+    loadScript('https://unpkg.com/@tonconnect/sdk@latest', function() {
+      document.getElementById('status').innerHTML += '<p>TonConnect SDK loaded successfully</p>';
       
-      // Проверяем, доступен ли TonConnectUI
-      if (typeof TonConnectUI === 'undefined') {
-        console.error('TonConnectUI is not defined');
-        document.getElementById('ton-connect-container').innerHTML = 
-          '<p style="color: red">Error: TonConnectUI library not loaded</p>';
-        return;
+      // Проверяем, доступен ли TonConnect
+      if (typeof TonConnect !== 'undefined') {
+        document.getElementById('status').innerHTML += 
+          '<p style="color: green">TonConnect SDK is available</p>';
+        
+        // Создаем простую кнопку подключения
+        const connectButton = document.createElement('button');
+        connectButton.textContent = 'Connect Wallet (Basic)';
+        connectButton.style.padding = '10px 20px';
+        connectButton.style.margin = '20px 0';
+        document.body.appendChild(connectButton);
+        
+        // Инициализируем TonConnect
+        try {
+          const connector = new TonConnect.TonConnect({
+            manifestUrl: 'https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json'
+          });
+          
+          document.getElementById('status').innerHTML += 
+            '<p style="color: green">TonConnect instance created successfully</p>';
+            
+          // Обработчик нажатия на кнопку
+          connectButton.addEventListener('click', async () => {
+            try {
+              document.getElementById('status').innerHTML += 
+                '<p>Getting available wallets...</p>';
+              
+              const wallets = await connector.getWallets();
+              
+              document.getElementById('status').innerHTML += 
+                `<p>Found ${wallets.length} wallets</p>`;
+              
+              if (wallets.length > 0) {
+                // Выводим список доступных кошельков
+                const walletsList = document.createElement('div');
+                wallets.forEach(wallet => {
+                  const walletItem = document.createElement('div');
+                  walletItem.textContent = wallet.name;
+                  walletItem.style.padding = '10px';
+                  walletItem.style.margin = '5px 0';
+                  walletItem.style.border = '1px solid #ccc';
+                  walletItem.style.cursor = 'pointer';
+                  
+                  walletItem.addEventListener('click', () => {
+                    connector.connect({
+                      jsBridgeKey: wallet.jsBridgeKey,
+                      universalLink: wallet.universalLink,
+                      bridgeUrl: wallet.bridgeUrl
+                    });
+                  });
+                  
+                  walletsList.appendChild(walletItem);
+                });
+                document.body.appendChild(walletsList);
+              }
+            } catch (error) {
+              document.getElementById('status').innerHTML += 
+                `<p style="color: red">Error: ${error.message}</p>`;
+              console.error('Error:', error);
+            }
+          });
+        } catch (error) {
+          document.getElementById('status').innerHTML += 
+            `<p style="color: red">Error creating TonConnect: ${error.message}</p>`;
+          console.error('Error creating TonConnect:', error);
+        }
+      } else {
+        document.getElementById('status').innerHTML += 
+          '<p style="color: red">TonConnect SDK is not available after loading</p>';
       }
-      
-      console.log('Creating TonConnectUI instance');
-      
-      // Создаем экземпляр TonConnectUI
-      const tonConnectUI = new TonConnectUI({
-        manifestUrl: 'https://axusprotocol.github.io/axusprotocol/tonconnect-manifest.json',
-        buttonRootId: 'ton-connect-container'
-      });
-      
-      console.log('TonConnectUI instance created:', tonConnectUI);
     });
   </script>
 </body>
