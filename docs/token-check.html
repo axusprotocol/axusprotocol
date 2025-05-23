@@ -4,121 +4,128 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AXUS | Проверка токенов</title>
-  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script>
   <style>
-    /* Обновленные стили */
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: Arial, sans-serif;
       max-width: 800px;
       margin: 0 auto;
       padding: 20px;
-      background-color: #f8f9fa;
-      color: #333;
+      background: #f5f5f5;
     }
-    #ton-connect {
-      margin: 25px 0;
-      min-height: 60px;
-      display: flex;
-      justify-content: center;
+    
+    #wallet-connection {
+      margin: 20px 0;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-    .wallet-status {
-      padding: 15px;
-      border-radius: 8px;
-      text-align: center;
-      margin-bottom: 20px;
+    
+    .connect-btn {
+      background: #0088cc;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
     }
+    
+    .status {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    
     .connected {
-      background-color: #e6f7e6;
+      background: #e6f7e6;
       color: #2e7d32;
     }
+    
     .disconnected {
-      background-color: #ffebee;
+      background: #ffebee;
       color: #c62828;
     }
-    /* Остальные стили остаются прежними */
+    
+    .error {
+      background: #fff3e0;
+      color: #e65100;
+    }
   </style>
 </head>
 <body>
 
-<div id="ton-connect"></div>
-<div id="wallet-status" class="wallet-status disconnected">Кошелек не подключен</div>
+<div id="wallet-connection">
+  <h2>Подключение кошелька</h2>
+  <button id="connect-btn" class="connect-btn">Подключить кошелек</button>
+  <div id="connection-status" class="status disconnected">Кошелек не подключен</div>
+</div>
 
 <script>
-  let tonConnectUI;
-  let isWalletConnected = false;
+  // Инициализация TonConnect
+  const connector = new TonConnect.TonConnect({
+    manifestUrl: 'https://ton-connect.github.io/demo-dapp-with-react/tonconnect-manifest.json'
+  });
 
-  async function initTonConnect() {
+  // Элементы интерфейса
+  const connectBtn = document.getElementById('connect-btn');
+  const statusDiv = document.getElementById('connection-status');
+
+  // Проверка существующего подключения
+  async function checkConnection() {
     try {
-      // 1. Проверяем доступность библиотеки
-      if (typeof TonConnectUI === 'undefined') {
-        throw new Error('Библиотека TonConnect не загрузилась');
+      const walletConnectionSource = {
+        jsBridgeKey: 'tonconnect'
+      };
+
+      const connection = await connector.connect(walletConnectionSource);
+      
+      if (connection) {
+        statusDiv.textContent = `Кошелек подключен: ${connection.device.appName}`;
+        statusDiv.className = 'status connected';
+        connectBtn.textContent = 'Отключить';
+      } else {
+        statusDiv.textContent = 'Кошелек не подключен';
+        statusDiv.className = 'status disconnected';
+        connectBtn.textContent = 'Подключить кошелек';
       }
-
-      // 2. Инициализируем TonConnect с альтернативными настройками
-      tonConnectUI = new TonConnectUI.TonConnectUI({
-        manifestUrl: "https://ton-connect.github.io/demo-dapp-with-react/tonconnect-manifest.json", // Используем демо-манифест
-        buttonRootId: "ton-connect",
-        language: 'ru',
-        uiPreferences: {
-          theme: 'LIGHT',
-          borderRadius: 'm'
-        }
-      });
-
-      // 3. Настраиваем обработчики подключения
-      tonConnectUI.onStatusChange((wallet) => {
-        isWalletConnected = !!wallet;
-        updateWalletStatus();
-        
-        if (wallet) {
-          console.log('Кошелек подключен:', wallet);
-          // Здесь можно обновить интерфейс для подключенного кошелька
-        } else {
-          console.log('Кошелек отключен');
-        }
-      });
-
-      // 4. Проверяем существующее подключение
-      const wallet = await tonConnectUI.getWallet();
-      if (wallet) {
-        isWalletConnected = true;
-        updateWalletStatus();
-      }
-
     } catch (error) {
-      console.error('Ошибка инициализации TonConnect:', error);
-      showError('Ошибка подключения. Пожалуйста, обновите страницу или попробуйте позже.');
+      console.error('Ошибка подключения:', error);
+      statusDiv.textContent = 'Ошибка подключения: ' + error.message;
+      statusDiv.className = 'status error';
     }
   }
 
-  function updateWalletStatus() {
-    const statusElement = document.getElementById('wallet-status');
-    if (isWalletConnected) {
-      statusElement.textContent = 'Кошелек подключен';
-      statusElement.className = 'wallet-status connected';
+  // Обработчик кнопки подключения
+  connectBtn.addEventListener('click', async () => {
+    if (connector.connected) {
+      await connector.disconnect();
+      statusDiv.textContent = 'Кошелек отключен';
+      statusDiv.className = 'status disconnected';
+      connectBtn.textContent = 'Подключить кошелек';
     } else {
-      statusElement.textContent = 'Кошелек не подключен';
-      statusElement.className = 'wallet-status disconnected';
+      try {
+        statusDiv.textContent = 'Откройте приложение кошелька...';
+        statusDiv.className = 'status';
+        
+        const wallets = await connector.getWallets();
+        await connector.connect(wallets[0]);
+        
+        statusDiv.textContent = `Кошелек подключен: ${wallets[0].name}`;
+        statusDiv.className = 'status connected';
+        connectBtn.textContent = 'Отключить';
+      } catch (error) {
+        console.error('Ошибка подключения:', error);
+        statusDiv.textContent = 'Ошибка подключения: ' + error.message;
+        statusDiv.className = 'status error';
+      }
     }
-  }
+  });
 
-  function showError(message) {
-    const tonConnectElement = document.getElementById('ton-connect');
-    tonConnectElement.innerHTML = `
-      <div style="color: #d32f2f; padding: 15px; border: 1px solid #ffcdd2; border-radius: 8px; background: #ffebee;">
-        ${message}
-        <button onclick="window.location.reload()" style="margin-top: 10px; padding: 8px 16px; background: #007aff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-          Обновить страницу
-        </button>
-      </div>
-    `;
-  }
-
-  // Инициализация при загрузке страницы
-  window.addEventListener('DOMContentLoaded', initTonConnect);
+  // Проверяем подключение при загрузке
+  window.addEventListener('load', checkConnection);
 </script>
-
-<!-- Остальная часть вашего HTML (формы, кнопки и т.д.) -->
 
 </body>
 </html>
