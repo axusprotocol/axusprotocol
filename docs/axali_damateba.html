@@ -18,10 +18,10 @@
   <div id="ton-connect" style="margin-bottom: 20px;"></div>
 
   <h1>AXUS Token Collateral Checker</h1>
-  <p>Connect your TON wallet, pay 0.01 TON and check if your token is eligible for collateral.</p>
+  <p>Connect your TON wallet, pay 0.01 TON and check your token's eligibility for collateral.</p>
 
-  <input type="text" id="token-address" placeholder="Enter Jetton address (base64)">
-  <input type="number" id="token-amount" placeholder="How many tokens you own">
+  <input type="text" id="token-address" placeholder="Jetton address (base64)">
+  <input type="number" id="token-amount" placeholder="How many tokens you hold">
   <button onclick="initiatePayment()">Check Token (0.01 TON)</button>
 
   <div class="result" id="result"></div>
@@ -41,13 +41,13 @@
       const resultDiv = document.getElementById("result");
 
       if (!tokenAddress || isNaN(tokenAmount)) {
-        resultDiv.innerHTML = "❌ Enter token address and how many tokens you hold.";
+        resultDiv.innerHTML = "❌ Please enter token address and amount.";
         return;
       }
 
       const connected = await window.tonConnectUI.connected;
       if (!connected) {
-        resultDiv.innerHTML = "❌ Please connect your wallet.";
+        resultDiv.innerHTML = "❌ Connect your wallet first.";
         return;
       }
 
@@ -59,7 +59,7 @@
           messages: [
             {
               address: "UQBpdVR9LVBixqJ2JRj-c8-NtNa3REQL7B2jnEyrQ5JiS5IA",
-              amount: "10000000",
+              amount: "10000000", // 0.01 TON
               payload: null
             }
           ]
@@ -68,7 +68,7 @@
         resultDiv.innerHTML = "✅ Payment received. Checking token...";
         checkToken(tokenAddress, tokenAmount);
       } catch (err) {
-        resultDiv.innerHTML = "❌ Payment cancelled or failed.";
+        resultDiv.innerHTML = "❌ Payment failed or cancelled.";
       }
     }
 
@@ -78,7 +78,7 @@
       try {
         const res = await fetch(`https://api.ston.fi/v1/jetton/info?address=${address}`);
         if (!res.ok) {
-          resultDiv.innerHTML = `❌ Token not found in ston.fi: ${address}`;
+          resultDiv.innerHTML = `❌ Token not found: ${address}`;
           return;
         }
 
@@ -93,8 +93,7 @@
         const totalValue = price * userAmount;
 
         if (holders >= 50) {
-          passed++;
-          checks.push(`✅ Holders: ${holders}`);
+          passed++; checks.push(`✅ Holders: ${holders}`);
         } else {
           checks.push(`❌ Holders: ${holders}`);
         }
@@ -106,15 +105,13 @@
         }
 
         if (totalValue >= 3) {
-          passed++;
-          checks.push(`✅ Your token value: $${totalValue.toFixed(2)} (min $3)`);
+          passed++; checks.push(`✅ Your token value: $${totalValue.toFixed(2)} (min $3)`);
         } else {
           checks.push(`❌ Your token value: $${totalValue.toFixed(2)} (min $3)`);
         }
 
         if (liquidity >= 500) {
-          passed++;
-          checks.push(`✅ Liquidity: $${liquidity}`);
+          passed++; checks.push(`✅ Liquidity: $${liquidity}`);
         } else {
           checks.push(`❌ Liquidity: $${liquidity}`);
         }
@@ -128,6 +125,7 @@
         `;
       } catch (err) {
         resultDiv.innerHTML = "❌ Failed to fetch token data.";
+        console.error(err);
       }
     }
   </script>
