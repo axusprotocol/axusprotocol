@@ -132,6 +132,13 @@
 
         resultDiv.innerHTML = `<strong>Token:</strong> ${name}<br/>${checks.join("<br/>")}<br/><br/><strong>${status}</strong>`;
 
+        if (passed >= 3) {
+         sessionStorage.setItem("jetton", address);
+         sessionStorage.setItem("amount", userAmount.toString());
+         sessionStorage.setItem("usdValue", value.toFixed(2));
+         window.location.href = "collateral-form.html";
+      }
+        
       } catch (err) {
         resultDiv.innerHTML = "❌ Token not found or network error.";
       }
