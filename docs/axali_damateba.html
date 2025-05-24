@@ -103,143 +103,100 @@
   const checks = [];
   
   try {
+    console.log("Checking token:", address, "Amount:", userAmount);
+    
     const res = await fetch(`https://api.ston.fi/v1/jetton/info?address=${address}`);
     const data = await res.json();
+    
+    console.log("STON.FI response:", data); // ДОБАВИЛ ЛОГ
     
     let name = data.name || "Unknown";
     let holders = data.holders_count || 0;
     let price = parseFloat(data.price_usd) || 0;
     let liquidity = parseFloat(data.liquidity_usd) || 0;
     
+    console.log("Initial values:", { name, holders, price, liquidity }); // ДОБАВИЛ ЛОГ
+    
     // Если цена или ликвидность 0, пробуем другие API
     if (price === 0 || liquidity === 0) {
+      console.log("Trying tonapi.io..."); // ДОБАВИЛ ЛОГ
       try {
         const res2 = await fetch(`https://tonapi.io/v2/jettons/${address}`);
         const data2 = await res2.json();
+        console.log("TONAPI response:", data2); // ДОБАВИЛ ЛОГ
+        
         price = data2.price?.price_usd || price;
         liquidity = data2.liquidity?.usd || liquidity;
-      } catch (e) {}
+      } catch (e) {
+        console.log("TONAPI failed:", e); // ДОБАВИЛ ЛОГ
+      }
       
       if (price === 0 || liquidity === 0) {
+        console.log("Trying dedust.io..."); // ДОБАВИЛ ЛОГ
         try {
           const res3 = await fetch(`https://api.dedust.io/v2/jettons/${address}`);
           const data3 = await res3.json();
+          console.log("DEDUST response:", data3); // ДОБАВИЛ ЛОГ
+          
           price = data3.price_usd || price;
           liquidity = data3.liquidity_usd || liquidity;
-        } catch (e) {}
+        } catch (e) {
+          console.log("DEDUST failed:", e); // ДОБАВИЛ ЛОГ
+        }
       }
     }
     
     const value = userAmount * price;
+    console.log("Final values:", { holders, price, liquidity, value, passed }); // ДОБАВИЛ ЛОГ
     
-    // ИСПРАВЛЕНИЕ: добавляем passed++ для всех проверок
+    // Проверки с логами
     if (holders >= 50) { 
       passed++; 
-      checks.push(`✅ Holders: ${holders}`); 
+      checks.push(`✅ Holders: ${holders}`);
+      console.log("Holders check PASSED, passed count:", passed);
     } else { 
-      checks.push(`❌ Holders: ${holders}`); 
+      checks.push(`❌ Holders: ${holders}`);
+      console.log("Holders check FAILED");
     }
     
     if (price > 0) { 
       passed++; 
-      checks.push(`✅ Price: $${price.toFixed(6)}`); 
+      checks.push(`✅ Price: $${price.toFixed(6)}`);
+      console.log("Price check PASSED, passed count:", passed);
     } else { 
-      checks.push(`❌ Price: $0`); 
+      checks.push(`❌ Price: $0`);
+      console.log("Price check FAILED");
     }
     
     if (value >= 3) { 
       passed++; 
-      checks.push(`✅ Your token value: $${value.toFixed(2)} (min $3)`); 
+      checks.push(`✅ Your token value: $${value.toFixed(2)} (min $3)`);
+      console.log("Value check PASSED, passed count:", passed);
     } else { 
-      checks.push(`❌ Your token value: $${value.toFixed(2)} (min $3)`); 
+      checks.push(`❌ Your token value: $${value.toFixed(2)} (min $3)`);
+      console.log("Value check FAILED");
     }
     
     if (liquidity >= 500) { 
       passed++; 
-      checks.push(`✅ Liquidity: $${liquidity.toFixed(2)}`); 
+      checks.push(`✅ Liquidity: $${liquidity.toFixed(2)}`);
+      console.log("Liquidity check PASSED, passed count:", passed);
     } else { 
-      checks.push(`❌ Liquidity: $${liquidity.toFixed(2)}`); 
+      checks.push(`❌ Liquidity: $${liquidity.toFixed(2)}`);
+      console.log("Liquidity check FAILED");
     }
     
-    // ИСПРАВЛЕНИЕ: более детальное сообщение об ошибке
-    let status;
-    if (passed >= 3) {
-      status = "✅ Token accepted as collateral.";
-    } else {
-      const failedChecks = [];
-      if (holders < 50) failedChecks.push("insufficient holders");
-      if (price <= 0) failedChecks.push("no price data");
-      if (value < 3) failedChecks.push("token value below $3");
-      if (liquidity < 500) failedChecks.push("insufficient liquidity");
-      
-      status = `❌ Token rejected. Issues: ${failedChecks.join(", ")}.`;
-    }
+    console.log("FINAL passed count:", passed); // ДОБАВИЛ ЛОГ
+    
+    const status = passed >= 3 ? "✅ Token accepted as collateral." : "❌ Token rejected. Doesn't meet requirements.";
     
     resultDiv.innerHTML = `<strong>Token:</strong> ${name}<br/>${checks.join("<br/>")}<br/><br/><strong>${status}</strong>`;
     
   } catch (err) {
-    console.warn("STON.FI API failed. Trying tonapi.io...");
-    
-    // Аналогичные исправления для fallback блока
-    try {
-      const fallback = await fetch(`https://tonapi.io/v2/jettons/${address}`);
-      const data = await fallback.json();
-      
-      const name = data.metadata?.name || "Unknown";
-      const holders = data.holders_count || 0;
-      const price = data.price?.price_usd || 0;
-      const liquidity = data.liquidity?.usd || 0;
-      const value = userAmount * price;
-      
-      let passed = 0;
-      const checks = [];
-      
-      if (holders >= 50) { 
-        passed++; 
-        checks.push(`✅ Holders: ${holders}`); 
-      } else { 
-        checks.push(`❌ Holders: ${holders}`); 
-      }
-      
-      if (price > 0) { 
-        passed++; 
-        checks.push(`✅ Price: $${price.toFixed(6)}`); 
-      } else { 
-        checks.push(`❌ Price: $0`); 
-      }
-      
-      if (value >= 3) { 
-        passed++; 
-        checks.push(`✅ Your token value: $${value.toFixed(2)} (min $3)`); 
-      } else { 
-        checks.push(`❌ Your token value: $${value.toFixed(2)} (min $3)`); 
-      }
-      
-      if (liquidity >= 500) { 
-        passed++; 
-        checks.push(`✅ Liquidity: $${liquidity.toFixed(2)}`); 
-      } else { 
-        checks.push(`❌ Liquidity: $${liquidity.toFixed(2)}`); 
-      }
-      
-      let status;
-      if (passed >= 3) {
-        status = "✅ Token accepted as collateral.";
-      } else {
-        const failedChecks = [];
-        if (holders < 50) failedChecks.push("insufficient holders");
-        if (price <= 0) failedChecks.push("no price data");
-        if (value < 3) failedChecks.push("token value below $3");
-        if (liquidity < 500) failedChecks.push("insufficient liquidity");
-        
-        status = `❌ Token rejected. Issues: ${failedChecks.join(", ")}.`;
-      }
-      
-      resultDiv.innerHTML = `<strong>Token:</strong> ${name}<br/>${checks.join("<br/>")}<br/><br/><strong>${status}</strong>`;
-    } catch (err2) {
-      resultDiv.innerHTML = "❌ Token not found or network error.";
-    }
+    console.error("Main API failed:", err);
+    resultDiv.innerHTML = "❌ Token not found or network error.";
   }
+}
 }
   </script>
 </body>
