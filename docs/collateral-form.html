@@ -17,7 +17,7 @@
   <p>Fill out the form below. This application is based on the token you already verified.</p>
 
   <label for="wallet">Your Wallet Address</label>
-  <input type="text" id="wallet" placeholder="Your TON wallet address">
+  <input type="text" id="wallet" placeholder="Your TON wallet address" readonly>
 
   <label for="jetton">Jetton Address</label>
   <input type="text" id="jetton" readonly>
@@ -44,16 +44,38 @@
   <div class="result" id="result"></div>
 
   <script>
-    // Автозаполнение из sessionStorage
+    function updateAxp() {
+      const value = parseFloat(sessionStorage.getItem("usdValue")) || 0;
+      const days = parseInt(document.getElementById("days").value);
+      let percent = 0;
+      switch (days) {
+        case 10: percent = 5; break;
+        case 20: percent = 7.2; break;
+        case 30: percent = 9.1; break;
+        case 60: percent = 23.6; break;
+      }
+
+      const axpRaw = value * 0.6;
+      const axpIssued = axpRaw * 0.985;
+      const axpReturn = axpIssued + (axpIssued * percent / 100);
+
+      document.getElementById("axp").value = axpIssued.toFixed(2);
+      document.getElementById("result").innerHTML = `
+        <strong>AXP Preview:</strong><br>
+        You’ll receive: ${axpIssued.toFixed(2)} AXP<br>
+        Must return in ${days} days: ${axpReturn.toFixed(2)} AXP (+${percent}%)
+      `;
+    }
+
     window.onload = () => {
+      document.getElementById("wallet").value = sessionStorage.getItem("wallet") || "";
       document.getElementById("jetton").value = sessionStorage.getItem("jetton") || "";
       document.getElementById("amount").value = sessionStorage.getItem("amount") || "";
       document.getElementById("usdValue").value = sessionStorage.getItem("usdValue") || "";
-      const value = parseFloat(sessionStorage.getItem("usdValue")) || 0;
-      const axpRaw = value * 0.6;
-      const axpFinal = axpRaw * 0.985; // минус 1.5% сжигается
-      document.getElementById("axp").value = axpFinal.toFixed(2);
+      updateAxp();
     };
+
+    document.getElementById("days").addEventListener("change", updateAxp);
 
     function submitApplication() {
       const wallet = document.getElementById("wallet").value.trim();
@@ -62,14 +84,21 @@
       const usdValue = parseFloat(document.getElementById("usdValue").value);
       const axp = parseFloat(document.getElementById("axp").value);
       const days = parseInt(document.getElementById("days").value);
+      let percent = 0;
+
+      switch (days) {
+        case 10: percent = 5; break;
+        case 20: percent = 7.2; break;
+        case 30: percent = 9.1; break;
+        case 60: percent = 23.6; break;
+      }
+
+      const toReturn = axp + (axp * percent / 100);
 
       if (!wallet || !jetton || isNaN(amount) || isNaN(usdValue) || isNaN(axp)) {
         document.getElementById("result").innerHTML = "❌ Please complete all fields.";
         return;
       }
-
-      const rate = days === 10 ? 5 : days === 20 ? 7.2 : days === 30 ? 9.1 : 23.6;
-      const toReturn = axp + (axp * rate / 100);
 
       const data = {
         wallet,
@@ -79,21 +108,20 @@
         axpIssued: axp.toFixed(2),
         axpReturn: toReturn.toFixed(2),
         loanDays: days,
-        percent: rate,
+        percent,
         date: new Date().toISOString(),
         ip: null
       };
 
-      // Отправка на сервер или почту
+      // Тут будет логика отправки на email или в базу
       console.log("Loan request submitted:", data);
+
       document.getElementById("result").innerHTML = `
         <strong>✅ Application Submitted</strong><br><br>
         AXP issued: ${data.axpIssued}<br>
-        AXP to return in ${days} days: ${data.axpReturn} (+${rate}%)<br>
+        AXP to return in ${days} days: ${data.axpReturn} (+${percent}%)<br>
         Note: Manual review within 24h.
       `;
-
-      // Тут можно добавить: сохранение в базу, лог на email и т.д.
     }
   </script>
 
