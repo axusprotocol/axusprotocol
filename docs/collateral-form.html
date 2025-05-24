@@ -3,25 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AXUS | Loan Application</title>
+  <title>AXUS | Collateral Form</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: auto; padding: 2rem; background: #fff; color: #111; }
+    body { font-family: Arial, sans-serif; max-width: 850px; margin: auto; padding: 2rem; background: #fff; color: #111; }
     h1 { color: #007aff; }
-    input, select, button, label { display: block; margin: 10px 0; padding: 10px; width: 100%; max-width: 500px; }
-    .result { margin-top: 20px; padding: 1rem; border: 1px solid #ccc; background: #f9f9f9; }
-    .back-button { margin-top: 2rem; display: inline-block; background: #e5e5e5; color: #333; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
+    input, select, button { margin: 10px 0; padding: 10px; width: 100%; max-width: 500px; display: block; }
+    .result { margin-top: 20px; background: #f0f0f0; padding: 1rem; border: 1px solid #ccc; }
   </style>
 </head>
 <body>
 
   <h1>AXUS Loan Application</h1>
-  <p>Please fill in the information below. Note: approval takes up to 24 hours after manual review by oracle team.</p>
+  <p>Fill out the form below. This application is based on the token you already verified.</p>
+
+  <label for="wallet">Your Wallet Address</label>
+  <input type="text" id="wallet" placeholder="Your TON wallet address">
 
   <label for="jetton">Jetton Address</label>
-  <input type="text" id="jetton" placeholder="Enter Jetton address (base64)" required>
+  <input type="text" id="jetton" readonly>
 
   <label for="amount">Amount of Tokens</label>
-  <input type="number" id="amount" placeholder="How many tokens you are sending" required>
+  <input type="number" id="amount" readonly>
+
+  <label for="usdValue">Market Value ($)</label>
+  <input type="text" id="usdValue" readonly>
+
+  <label for="axp">You will receive (AXP)</label>
+  <input type="text" id="axp" readonly>
 
   <label for="days">Choose loan duration</label>
   <select id="days">
@@ -31,35 +39,61 @@
     <option value="60">60 days (+23.6%)</option>
   </select>
 
-  <button onclick="calculateReturn()">Submit Application</button>
+  <button onclick="submitApplication()">Submit Application</button>
 
   <div class="result" id="result"></div>
 
-  <a class="back-button" href="token-check.html">← Back to Collateral Checker</a>
-
   <script>
-    function calculateReturn() {
-      const amount = parseFloat(document.getElementById("amount").value);
-      const days = parseInt(document.getElementById("days").value);
-      let percent = 0;
+    // Автозаполнение из sessionStorage
+    window.onload = () => {
+      document.getElementById("jetton").value = sessionStorage.getItem("jetton") || "";
+      document.getElementById("amount").value = sessionStorage.getItem("amount") || "";
+      document.getElementById("usdValue").value = sessionStorage.getItem("usdValue") || "";
+      const value = parseFloat(sessionStorage.getItem("usdValue")) || 0;
+      const axpRaw = value * 0.6;
+      const axpFinal = axpRaw * 0.985; // минус 1.5% сжигается
+      document.getElementById("axp").value = axpFinal.toFixed(2);
+    };
 
-      switch(days) {
-        case 10: percent = 5; break;
-        case 20: percent = 7.2; break;
-        case 30: percent = 9.1; break;
-        case 60: percent = 23.6; break;
+    function submitApplication() {
+      const wallet = document.getElementById("wallet").value.trim();
+      const jetton = document.getElementById("jetton").value;
+      const amount = parseFloat(document.getElementById("amount").value);
+      const usdValue = parseFloat(document.getElementById("usdValue").value);
+      const axp = parseFloat(document.getElementById("axp").value);
+      const days = parseInt(document.getElementById("days").value);
+
+      if (!wallet || !jetton || isNaN(amount) || isNaN(usdValue) || isNaN(axp)) {
+        document.getElementById("result").innerHTML = "❌ Please complete all fields.";
+        return;
       }
 
-      const total = amount + (amount * percent / 100);
+      const rate = days === 10 ? 5 : days === 20 ? 7.2 : days === 30 ? 9.1 : 23.6;
+      const toReturn = axp + (axp * rate / 100);
+
+      const data = {
+        wallet,
+        jetton,
+        amount,
+        usdValue,
+        axpIssued: axp.toFixed(2),
+        axpReturn: toReturn.toFixed(2),
+        loanDays: days,
+        percent: rate,
+        date: new Date().toISOString(),
+        ip: null
+      };
+
+      // Отправка на сервер или почту
+      console.log("Loan request submitted:", data);
       document.getElementById("result").innerHTML = `
-        <strong>Your Application Summary:</strong><br>
-        Jetton Address: ${document.getElementById("jetton").value}<br>
-        Amount: ${amount} tokens<br>
-        Loan duration: ${days} days<br>
-        Return amount: ${total.toFixed(2)} tokens (+${percent}%)<br>
-        <br>
-        <em>Note:</em> Your request will be reviewed by our oracles. You'll get a decision within 24 hours. AXUS Protocol reserves the right to reject the application after internal checks.
+        <strong>✅ Application Submitted</strong><br><br>
+        AXP issued: ${data.axpIssued}<br>
+        AXP to return in ${days} days: ${data.axpReturn} (+${rate}%)<br>
+        Note: Manual review within 24h.
       `;
+
+      // Тут можно добавить: сохранение в базу, лог на email и т.д.
     }
   </script>
 
