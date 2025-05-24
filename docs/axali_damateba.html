@@ -74,77 +74,119 @@
   const resultDiv = document.getElementById("result");
   let passed = 0;
   const checks = [];
-  const debugInfo = []; // ДОБАВИЛ ТОЛЬКО ЭТО
+  
+  // Функция для получения цены токена из дополнительных источников
+  async function getTokenPrice(address) {
+    try {
+      const geckoterminalRes = await fetch(`https://api.geckoterminal.com/api/v2/networks/ton/tokens/${address}`);
+      if (geckoterminalRes.ok) {
+        const geckoData = await geckoterminalRes.json();
+        if (geckoData.data && geckoData.data.attributes && geckoData.data.attributes.price_usd) {
+          return parseFloat(geckoData.data.attributes.price_usd);
+        }
+      }
+      return 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  // Функция для получения ликвидности
+  async function getTokenLiquidity(address) {
+    try {
+      const dedustRes = await fetch(`https://api.dedust.io/v2/pools`);
+      const pools = await dedustRes.json();
+      
+      for (let pool of pools) {
+        if (pool.assets && pool.assets.some(asset => 
+          asset.address && asset.address.toLowerCase().includes(address.toLowerCase().slice(-20))
+        )) {
+          if (pool.liquidity && pool.liquidity.usd && pool.liquidity.usd > 0) {
+            return parseFloat(pool.liquidity.usd);
+          }
+        }
+      }
+      return 0;
+    } catch (e) {
+      return 0;
+    }
+  }
   
   try {
-    debugInfo.push(`📡 Запрос к STON.FI: ${address}`); // ДОБАВИЛ
     const res = await fetch(`https://api.ston.fi/v1/jetton/info?address=${address}`);
     const data = await res.json();
-    debugInfo.push(`📊 STON.FI ответил: ${JSON.stringify(data).substring(0, 100)}...`); // ДОБАВИЛ
     
     const name = data.name || "Unknown";
     const holders = data.holders_count || 0;
-    const price = parseFloat(data.price_usd) || 0;
-    const liquidity = parseFloat(data.liquidity_usd) || 0;
-    const value = userAmount * price;
+    let price = parseFloat(data.price_usd) || 0;
+    let liquidity = parseFloat(data.liquidity_usd) || 0;
     
-    debugInfo.push(`📈 Данные: holders=${holders}, price=${price}, liquidity=${liquidity}, value=${value}`); // ДОБАВИЛ
+    // Если цена = 0, пробуем дополнительные API
+    if (price === 0) {
+      price = await getTokenPrice(address);
+    }
+    
+    // Если ликвидность = 0, пробуем дополнительные API
+    if (liquidity === 0) {
+      liquidity = await getTokenLiquidity(address);
+    }
+    
+    const value = userAmount * price;
     
     if (holders >= 50) { passed++; checks.push(`✅ Holders: ${holders}`); }
     else { checks.push(`❌ Holders: ${holders}`); }
-    if (price > 0) { checks.push(`✅ Price: $${price.toFixed(6)}`); }
+    if (price > 0) { passed++; checks.push(`✅ Price: $${price.toFixed(6)}`); }
     else { checks.push(`❌ Price: $0`); }
     if (value >= 3) { passed++; checks.push(`✅ Your token value: $${value.toFixed(2)} (min $3)`); }
     else { checks.push(`❌ Your token value: $${value.toFixed(2)} (min $3)`); }
     if (liquidity >= 500) { passed++; checks.push(`✅ Liquidity: $${liquidity}`); }
     else { checks.push(`❌ Liquidity: $${liquidity}`); }
     
-    debugInfo.push(`🏁 passed = ${passed} из 4 проверок`); // ДОБАВИЛ
-    
     const status = passed >= 3
       ? "✅ Token accepted as collateral."
       : "❌ Token rejected. Doesn't meet minimum 3 USDT value.";
     
-    // ИЗМЕНИЛ ТОЛЬКО ЭТУ СТРОКУ - добавил отладку в конец
-    resultDiv.innerHTML = `<strong>Token:</strong> ${name}<br/>${checks.join("<br/>")}<br/><br/><strong>${status}</strong><hr/><small>🐛 DEBUG: ${debugInfo.join(" | ")}</small>`;
+    resultDiv.innerHTML = `<strong>Token:</strong> ${name}<br/>${checks.join("<br/>")}<br/><br/><strong>${status}</strong>`;
     
   } catch (err) {
     console.warn("STON.FI API failed. Trying tonapi.io...");
-    debugInfo.push(`❌ STON.FI failed: ${err.message}`); // ДОБАВИЛ
     try {
-      debugInfo.push(`📡 Пробуем TONAPI...`); // ДОБАВИЛ
       const fallback = await fetch(`https://tonapi.io/v2/jettons/${address}`);
       const data = await fallback.json();
-      debugInfo.push(`📊 TONAPI ответил: ${JSON.stringify(data).substring(0, 100)}...`); // ДОБАВИЛ
       
       const name = data.metadata?.name || "Unknown";
       const holders = data.holders_count || 0;
-      const price = data.price?.price_usd || 0;
-      const liquidity = data.liquidity?.usd || 0;
-      const value = userAmount * price;
+      let price = data.price?.price_usd || 0;
+      let liquidity = data.liquidity?.usd || 0;
       
-      debugInfo.push(`📈 Данные: holders=${holders}, price=${price}, liquidity=${liquidity}, value=${value}`); // ДОБАВИЛ
+      // Если цена = 0, пробуем дополнительные API
+      if (price === 0) {
+        price = await getTokenPrice(address);
+      }
+      
+      // Если ликвидность = 0, пробуем дополнительные API
+      if (liquidity === 0) {
+        liquidity = await getTokenLiquidity(address);
+      }
+      
+      const value = userAmount * price;
       
       if (holders >= 50) { passed++; checks.push(`✅ Holders: ${holders}`); }
       else { checks.push(`❌ Holders: ${holders}`); }
-      if (price > 0) { checks.push(`✅ Price: $${price.toFixed(6)}`); }
+      if (price > 0) { passed++; checks.push(`✅ Price: $${price.toFixed(6)}`); }
       else { checks.push(`❌ Price: $0`); }
       if (value >= 3) { passed++; checks.push(`✅ Your token value: $${value.toFixed(2)} (min $3)`); }
       else { checks.push(`❌ Your token value: $${value.toFixed(2)} (min $3)`); }
       if (liquidity >= 500) { passed++; checks.push(`✅ Liquidity: $${liquidity}`); }
       else { checks.push(`❌ Liquidity: $${liquidity}`); }
       
-      debugInfo.push(`🏁 passed = ${passed} из 4 проверок`); // ДОБАВИЛ
-      
       const status = passed >= 3
         ? "✅ Token accepted as collateral."
         : "❌ Token rejected. Doesn't meet minimum 3 USDT value.";
       
-      // ИЗМЕНИЛ ТОЛЬКО ЭТУ СТРОКУ - добавил отладку в конец
-      resultDiv.innerHTML = `<strong>Token:</strong> ${name}<br/>${checks.join("<br/>")}<br/><br/><strong>${status}</strong><hr/><small>🐛 DEBUG: ${debugInfo.join(" | ")}</small>`;
+      resultDiv.innerHTML = `<strong>Token:</strong> ${name}<br/>${checks.join("<br/>")}<br/><br/><strong>${status}</strong>`;
     } catch (err2) {
-      debugInfo.push(`❌ TONAPI failed: ${err2.message}`); // ДОБАВИЛ
-      resultDiv.innerHTML = `❌ Token not found or network error.<hr/><small>🐛 DEBUG: ${debugInfo.join(" | ")}</small>`; // ИЗМЕНИЛ
+      resultDiv.innerHTML = "❌ Token not found or network error.";
     }
   }
 }
