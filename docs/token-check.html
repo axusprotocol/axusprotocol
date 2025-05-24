@@ -35,7 +35,13 @@
         buttonRootId: "ton-connect"
       });
       window.tonConnectUI = tonConnectUI;
-    });
+
+      tonConnectUI.onStatusChange((walletInfo) => {
+    if (walletInfo?.account?.address) {
+      sessionStorage.setItem("wallet", walletInfo.account.address);
+    }
+  });
+});
 
     async function initiatePayment() {
       const tokenAddress = document.getElementById("token-address").value.trim();
