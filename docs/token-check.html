@@ -139,20 +139,59 @@
       ? "✅ Token accepted as collateral."
       : "❌ Token rejected. Doesn't meet minimum 3 USDT value.";
 
-    resultDiv.innerHTML = `<strong>Token:</strong> ${name}<br/>${checks.join("<br/>")}<br/><br/><strong>${status}</strong>`;
+        resultDiv.innerHTML = `<strong>Token:</strong> ${name}<br/>${checks.join("<br/>")}<br/><br/><strong>${status}</strong>`;
 
-    // Только если прошёл проверку — сохранить в sessionStorage и перейти
+    // Переход к заявке только если токен принят
     if (passed >= 3) {
       sessionStorage.setItem("jetton", address);
       sessionStorage.setItem("amount", userAmount.toString());
       sessionStorage.setItem("usdValue", value.toFixed(2));
+      
       setTimeout(() => {
         window.location.href = "collateral-form.html";
-      }, 1000); // небольшой таймер, чтобы пользователь увидел результат
+      }, 1200); // немного подождать, чтобы пользователь увидел статус
     }
-
   } catch (err) {
-    resultDiv.innerHTML = "❌ Token not found or network error.";
+    console.warn("STON.FI API failed. Trying fallback...");
+
+    try {
+      const fallback = await fetch(`https://tonapi.io/v2/jettons/${address}`);
+      const data = await fallback.json();
+
+      const name = data.metadata?.name || "Unknown";
+      const holders = data.holders_count || 0;
+      let price = data.price?.price_usd || 0;
+      let liquidity = data.liquidity?.usd || 0;
+
+      if (price === 0) price = await getTokenPrice(address);
+      if (liquidity === 0) liquidity = await getTokenLiquidity(address);
+
+      const value = userAmount * price;
+
+      if (holders >= 50) passed++, checks.push(`✅ Holders: ${holders}`); else checks.push(`❌ Holders: ${holders}`);
+      if (price > 0) passed++, checks.push(`✅ Price: $${price.toFixed(6)}`); else checks.push(`❌ Price: $0`);
+      if (value >= 3) passed++, checks.push(`✅ Your token value: $${value.toFixed(2)} (min $3)`); else checks.push(`❌ Your token value: $${value.toFixed(2)} (min $3)`);
+      if (liquidity >= 500) passed++, checks.push(`✅ Liquidity: $${liquidity}`); else checks.push(`❌ Liquidity: $${liquidity}`);
+
+      const status = passed >= 3
+        ? "✅ Token accepted as collateral."
+        : "❌ Token rejected. Doesn't meet minimum 3 USDT value.";
+
+      resultDiv.innerHTML = `<strong>Token:</strong> ${name}<br/>${checks.join("<br/>")}<br/><br/><strong>${status}</strong>`;
+
+      if (passed >= 3) {
+        sessionStorage.setItem("jetton", address);
+        sessionStorage.setItem("amount", userAmount.toString());
+        sessionStorage.setItem("usdValue", value.toFixed(2));
+        
+        setTimeout(() => {
+          window.location.href = "collateral-form.html";
+        }, 1200);
+      }
+
+    } catch (err2) {
+      resultDiv.innerHTML = "❌ Token not found or network error.";
+    }
   }
 }
   </script>
